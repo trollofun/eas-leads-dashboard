@@ -104,6 +104,8 @@ model leads {
 
   idempotency_key String? @unique @map("idempotency_key")
 
+  raw_metadata Json? @map("raw_metadata")
+
   vehicle_records  vehicle_records[]
   lead_events      lead_events[]
   google_conversion_queue google_conversion_queue[]

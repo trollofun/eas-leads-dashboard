@@ -4,6 +4,7 @@ import { normalizePhoneRO, normalizeEmail } from '@/lib/normalize';
 import { sha256Hex } from '@/lib/hash';
 import { verifyIngestHMAC } from '@/lib/hmac';
 import { calculateFakeScore } from '@/lib/scoring';
+import { sendReceptionEmail } from '@/lib/notify';
 
 export async function POST(request: NextRequest) {
   try {
@@ -122,6 +123,7 @@ export async function POST(request: NextRequest) {
         consent_ad_personalization: payload.consent?.ad_personalization,
         consent_collected_at: payload.consent?.collected_at ? new Date(payload.consent.collected_at) : null,
         consent_method: payload.consent?.method,
+        raw_metadata: payload.raw_metadata || null,
       },
     });
 
@@ -139,6 +141,19 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Fire-and-forget: send reception email (non-blocking)
+    if (!blocked) {
+      sendReceptionEmail({
+        leadId: lead.id,
+        name: lead.name,
+        phone: lead.phone,
+        serviceType: lead.service_type,
+        source: lead.source,
+        message: lead.message,
+        fakeScore: fakeResult.score,
+      }).catch(() => {});
+    }
 
     return NextResponse.json(
       {
