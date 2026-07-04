@@ -2,9 +2,9 @@ export function normalizePhoneRO(phone: string): string {
   const digits = phone.replace(/\D/g, '');
 
   if (digits.startsWith('40')) return `+${digits}`;
-  if (digits.startsWith('0')) return `+4${digits.slice(1)}`;
+  if (digits.startsWith('0')) return `+40${digits.slice(1)}`;
 
-  return `+4${digits}`;
+  return `+40${digits}`;
 }
 
 export function normalizeEmail(email: string): string {
