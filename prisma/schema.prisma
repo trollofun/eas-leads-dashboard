@@ -105,6 +105,7 @@ model leads {
   idempotency_key String? @unique @map("idempotency_key")
 
   raw_metadata Json? @map("raw_metadata")
+  fake_synced_to_google Boolean @default(false) @map("fake_synced_to_google")
 
   vehicle_records  vehicle_records[]
   lead_events      lead_events[]

@@ -1,5 +1,3 @@
-import crypto from 'crypto';
-
 const DATA_MANAGER_BASE = 'https://datamanager.googleapis.com/v1';
 
 interface CustomerMatchMember {
@@ -14,13 +12,19 @@ interface SyncResult {
 
 export async function syncCustomerMatch(members: CustomerMatchMember[]): Promise<SyncResult> {
   if (!members.length) return { uploaded: 0, errors: [] };
-
-  const operatingAccountId = process.env.GOOGLE_ADS_OPERATING_ACCOUNT_ID;
-  const loginAccountId = process.env.GOOGLE_ADS_LOGIN_ACCOUNT_ID || operatingAccountId;
   const settingsRaw = await getSettings('customer_match');
   if (!settingsRaw?.enabled || !settingsRaw?.listId) {
     return { uploaded: 0, errors: ['Customer Match not configured'] };
   }
+  return syncAudienceList(members, settingsRaw.listId, settingsRaw.validateOnly === true);
+}
+
+// Generic: push hashed members to any Google Ads user list (Customer Match sau exclusion)
+export async function syncAudienceList(members: CustomerMatchMember[], listId: string, validateOnly = false): Promise<SyncResult> {
+  if (!members.length) return { uploaded: 0, errors: [] };
+
+  const operatingAccountId = process.env.GOOGLE_ADS_OPERATING_ACCOUNT_ID;
+  const loginAccountId = process.env.GOOGLE_ADS_LOGIN_ACCOUNT_ID || operatingAccountId;
 
   const BATCH_SIZE = 100;
   let uploaded = 0;
@@ -34,7 +38,7 @@ export async function syncCustomerMatch(members: CustomerMatchMember[]): Promise
       destinations: [{
         operatingAccount: { accountType: 'GOOGLE_ADS', accountId: operatingAccountId },
         loginAccount: { accountType: 'GOOGLE_ADS', accountId: loginAccountId },
-        productDestinationId: settingsRaw.listId,
+        productDestinationId: listId,
       }],
       audienceMembers: batch.map(m => {
         const userIdentifiers: any[] = [];
@@ -45,7 +49,7 @@ export async function syncCustomerMatch(members: CustomerMatchMember[]): Promise
       consent: { adUserData: 'CONSENT_GRANTED', adPersonalization: 'CONSENT_GRANTED' },
       encoding: 'HEX',
       termsOfService: { customerMatchTermsOfServiceStatus: 'ACCEPTED' },
-      validateOnly: settingsRaw.validateOnly === true,
+      validateOnly,
     };
 
     try {
