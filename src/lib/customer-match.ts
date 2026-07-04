@@ -1,0 +1,80 @@
+import crypto from 'crypto';
+
+const DATA_MANAGER_BASE = 'https://datamanager.googleapis.com/v1';
+
+interface CustomerMatchMember {
+  hashedPhoneNumber?: string;
+  hashedEmailAddress?: string;
+}
+
+interface SyncResult {
+  uploaded: number;
+  errors: string[];
+}
+
+export async function syncCustomerMatch(members: CustomerMatchMember[]): Promise<SyncResult> {
+  if (!members.length) return { uploaded: 0, errors: [] };
+
+  const operatingAccountId = process.env.GOOGLE_ADS_OPERATING_ACCOUNT_ID;
+  const loginAccountId = process.env.GOOGLE_ADS_LOGIN_ACCOUNT_ID || operatingAccountId;
+  const settingsRaw = await getSettings('customer_match');
+  if (!settingsRaw?.enabled || !settingsRaw?.listId) {
+    return { uploaded: 0, errors: ['Customer Match not configured'] };
+  }
+
+  const BATCH_SIZE = 100;
+  let uploaded = 0;
+  const errors: string[] = [];
+
+  for (let i = 0; i < members.length; i += BATCH_SIZE) {
+    const batch = members.slice(i, i + BATCH_SIZE);
+
+    const requestBody = {
+      destinations: [{
+        operatingAccount: { accountType: 'GOOGLE_ADS', accountId: operatingAccountId },
+        loginAccount: { accountType: 'GOOGLE_ADS', accountId: loginAccountId },
+        productDestinationId: settingsRaw.listId,
+      }],
+      members: batch.map(m => {
+        const identifiers: any[] = [];
+        if (m.hashedPhoneNumber) identifiers.push({ hashedPhoneNumber: m.hashedPhoneNumber });
+        if (m.hashedEmailAddress) identifiers.push({ hashedEmailAddress: m.hashedEmailAddress });
+        return { identifiers, consent: { adUserData: 'CONSENT_GRANTED' } };
+      }),
+      encoding: 'HEX',
+    };
+
+    try {
+      const { GoogleAuth } = await import('google-auth-library');
+      const auth = new GoogleAuth({ scopes: ['https://www.googleapis.com/auth/datamanager'] });
+      const client = await auth.getClient();
+      const accessToken = await client.getAccessToken();
+
+      const res = await fetch(`${DATA_MANAGER_BASE}/accounts/-:ingestAudienceMembers`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken.token}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (res.ok) {
+        uploaded += batch.length;
+      } else {
+        const errText = await res.text();
+        errors.push(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: ${res.status} ${errText.slice(0, 200)}`);
+      }
+    } catch (e: any) {
+      errors.push(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: ${e.message}`);
+    }
+  }
+
+  return { uploaded, errors };
+}
+
+async function getSettings(key: string): Promise<any> {
+  const { prisma } = await import('./db');
+  const row = await prisma.dashboard_settings.findUnique({ where: { key } });
+  return row?.value as any;
+}

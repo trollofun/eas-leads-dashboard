@@ -4,14 +4,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Shell from '@/components/shell';
 import { ActionButton, fmtDate, EmptyState, Spinner } from '@/components/ui';
 
-interface ImportRow { id: string; created_at: string; name: string; phone: string | null; email: string | null; synced_to_google: boolean }
+interface ImportRow { id: string; created_at: string; name: string; phone: string | null; email: string | null; source: string; synced_to_google: boolean }
 
 export default function ImportPage() {
   const [items, setItems] = useState<ImportRow[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // manual form
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -20,8 +19,14 @@ export default function ImportPage() {
   const [msg, setMsg] = useState('');
   const csvRef = useRef<HTMLInputElement>(null);
 
+  // sync state
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState('');
+
+  const unsyncedCount = items.filter(i => !i.synced_to_google && i.source !== 'manual').length || items.filter(i => !i.synced_to_google).length;
+
   const load = useCallback(() => {
-    fetch('/api/customer-import?limit=50')
+    fetch('/api/customer-import?limit=100')
       .then(r => r.json())
       .then(d => { setItems(d.items || []); setTotal(d.total || 0); })
       .catch(() => {})
@@ -85,11 +90,28 @@ export default function ImportPage() {
     if (csvRef.current) csvRef.current.value = '';
   };
 
+  const syncToGoogle = async () => {
+    setSyncing(true); setSyncMsg('');
+    try {
+      const res = await fetch('/api/customer-match/sync', { method: 'POST' });
+      const d = await res.json();
+      if (d.errors?.length) {
+        setSyncMsg(`⚠ ${d.synced} sync, erori: ${d.errors[0].slice(0, 100)}`);
+      } else {
+        setSyncMsg(`✓ ${d.synced} trimiși către Google`);
+      }
+      load();
+    } catch {
+      setSyncMsg('Eroare la sincronizare');
+    }
+    setSyncing(false);
+  };
+
   return (
     <Shell>
       <h1 className="text-lg font-bold mb-4">Import clienți (Customer Match)</h1>
       <p className="text-sm text-gray-500 mb-4">
-        Clienți de pe cererile GDPR semnate la recepție. Datele sunt hash-uite și trimise Google pentru potrivire (Customer Match).
+        Clienți de pe cererile GDPR semnate la recepție. Datele sunt hash-uite și trimise Google pentru potrivire.
       </p>
 
       <div className="grid md:grid-cols-2 gap-6">
@@ -107,16 +129,16 @@ export default function ImportPage() {
               className="border rounded px-3 py-2 text-sm w-full" />
             <div className="flex items-center gap-2 text-xs text-gray-500">
               <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
-              GDPR: clientul a semnat cererea de date cu caracter personal ✓
+              GDPR: clientul a semnat cererea ✓
             </div>
             <div className="flex items-center gap-3">
-              <ActionButton label={saving ? 'Se salvează...' : 'Adaugă'} onClick={addManual} disabled={saving || !name.trim()} />
+              <ActionButton label={saving ? '...' : 'Adaugă'} onClick={addManual} disabled={saving || !name.trim()} />
               {msg && <span className="text-sm text-gray-600">{msg}</span>}
             </div>
           </div>
         </div>
 
-        {/* CSV upload */}
+        {/* CSV + sync */}
         <div className="bg-white rounded-lg border p-4">
           <h2 className="font-semibold mb-3">Import CSV</h2>
           <p className="text-xs text-gray-500 mb-3">
@@ -125,8 +147,23 @@ export default function ImportPage() {
           <input ref={csvRef} type="file" accept=".csv" onChange={handleCSV}
             className="block w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
           <p className="text-xs text-gray-400 mt-2">
-            Clienții cu telefon duplicat sunt skip-ați automat.
+            Duplicări telefon skip automat.
           </p>
+
+          <div className="border-t mt-4 pt-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-gray-600">
+                {unsyncedCount > 0 ? `${unsyncedCount} de sincronizat` : 'Totul sincronizat ✓'}
+              </span>
+              <ActionButton
+                label={syncing ? 'Se trimite...' : '→ Sincronizează cu Google'}
+                onClick={syncToGoogle}
+                disabled={syncing || unsyncedCount === 0}
+                small
+              />
+            </div>
+            {syncMsg && <p className="text-xs text-gray-600 mt-1">{syncMsg}</p>}
+          </div>
         </div>
       </div>
 
