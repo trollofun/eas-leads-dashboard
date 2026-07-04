@@ -3,13 +3,12 @@ import { prisma } from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { enqueueConversionForLead } from '@/lib/enqueue-conversion';
 
+// Only 2 conversions are configured in dashboard_settings.google_conversions:
+// appointment_booked + work_done (covers both service and ITP).
 const STATUS_CONVERSION_MAP: Record<string, string> = {
-  confirmed: 'lead_confirmed_by_reception',
   appointment_booked: 'appointment_booked',
-  arrived: 'vehicle_arrived',
-  itp_done: 'itp_done',
-  work_completed: 'work_completed',
-  invoiced: 'invoice_paid',
+  work_completed: 'work_done',
+  itp_done: 'work_done',
 };
 
 export async function GET(

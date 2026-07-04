@@ -1,85 +1,81 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import Shell from '@/components/shell';
+import { StatusBadge, ActionButton, NEXT_ACTIONS, updateLeadStatus, fmtDate, EmptyState } from '@/components/ui';
 
 export default function ITPPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
   const [leads, setLeads] = useState<any[]>([]);
 
-  useEffect(() => {
-    if (status === 'unauthenticated') router.push('/login');
-  }, [status, router]);
-
-  useEffect(() => {
-    fetch('/api/leads?service_type=itp&limit=100')
+  const load = useCallback(() => {
+    fetch('/api/leads?service_type=itp&limit=200')
       .then(r => r.json())
-      .then(data => setLeads(data.leads || []))
+      .then(d => setLeads(d.leads || []))
       .catch(() => {});
   }, []);
 
-  if (status === 'loading') return <div className="p-8">Se încarcă...</div>;
+  useEffect(() => { load(); }, [load]);
 
-  const pendingITP = leads.filter(l => ['confirmed', 'appointment_booked', 'arrived'].includes(l.status));
-  const doneITP = leads.filter(l => ['work_completed', 'conversion_sent'].includes(l.status));
+  const act = async (id: string, status: string) => { await updateLeadStatus(id, status); load(); };
+
+  const pending = leads.filter(l => ['new', 'confirmed', 'appointment_booked', 'arrived'].includes(l.status));
+  const done = leads.filter(l => ['work_completed', 'invoiced', 'conversion_sent'].includes(l.status));
 
   return (
-    <div className="min-h-screen p-6 max-w-6xl mx-auto">
-      <Link href="/leads" className="text-sm text-blue-600 mb-4 inline-block">← Înapoi</Link>
-      <h1 className="text-xl font-bold mb-4">🔍 ITP — Inspecția Tehnică Periodică</h1>
+    <Shell>
+      <h1 className="text-lg font-bold mb-4">ITP — Inspecția Tehnică Periodică</h1>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-lg border p-4">
-          <p className="text-xs text-gray-400">În așteptare</p>
-          <p className="text-2xl font-bold">{pendingITP.length}</p>
-        </div>
-        <div className="bg-white rounded-lg border p-4">
-          <p className="text-xs text-gray-400">Finalizate astăzi</p>
-          <p className="text-2xl font-bold">{doneITP.length}</p>
-        </div>
-        <div className="bg-white rounded-lg border p-4">
-          <p className="text-xs text-gray-400">Total</p>
-          <p className="text-2xl font-bold">{leads.length}</p>
-        </div>
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        <Stat label="Active" value={pending.length} />
+        <Stat label="Finalizate" value={done.length} />
+        <Stat label="Total" value={leads.length} />
       </div>
 
-      <h2 className="font-semibold mb-3">Programări ITP</h2>
-      <div className="bg-white rounded-lg border">
+      <div className="bg-white rounded-lg border overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b text-left text-gray-500">
-              <th className="p-3">Dată</th>
+            <tr className="border-b text-left text-gray-500 text-xs uppercase">
+              <th className="p-3">Programare</th>
               <th className="p-3">Nume</th>
               <th className="p-3">Mașină</th>
-              <th className="p-3">Înmatriculare</th>
+              <th className="p-3">Nr. înmatr.</th>
               <th className="p-3">Status</th>
               <th className="p-3">Acțiune</th>
             </tr>
           </thead>
           <tbody>
-            {pendingITP.map(lead => (
+            {pending.map(lead => (
               <tr key={lead.id} className="border-b last:border-0 hover:bg-gray-50">
-                <td className="p-3 text-xs">{lead.appointment_at ? new Date(lead.appointment_at).toLocaleString('ro-RO') : '—'}</td>
-                <td className="p-3">{lead.name || '—'}</td>
+                <td className="p-3 text-xs whitespace-nowrap">{fmtDate(lead.appointment_at)}</td>
+                <td className="p-3"><Link href={`/leads/${lead.id}`} className="font-medium hover:text-blue-600">{lead.name || '—'}</Link></td>
                 <td className="p-3 text-xs">{lead.car_make} {lead.car_model} {lead.car_year}</td>
                 <td className="p-3 font-mono text-xs">{lead.registration_number || '—'}</td>
+                <td className="p-3"><StatusBadge status={lead.status} /></td>
                 <td className="p-3">
-                  <span className="px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs">{lead.status}</span>
-                </td>
-                <td className="p-3">
-                  <Link href={`/leads/${lead.id}`} className="text-blue-600 text-xs hover:underline">Detalii →</Link>
+                  <div className="flex gap-1.5">
+                    {(NEXT_ACTIONS[lead.status] || []).map(([label, next, color]) => (
+                      <ActionButton key={next} label={label} color={color} small onClick={() => act(lead.id, next)} />
+                    ))}
+                  </div>
                 </td>
               </tr>
             ))}
-            {pendingITP.length === 0 && (
-              <tr><td colSpan={6} className="p-6 text-center text-gray-400">Nicio programare ITP activă</td></tr>
+            {pending.length === 0 && (
+              <tr><td colSpan={6}><EmptyState text="Nicio programare ITP activă" /></td></tr>
             )}
           </tbody>
         </table>
       </div>
+    </Shell>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="bg-white rounded-lg border p-4">
+      <p className="text-xs text-gray-500">{label}</p>
+      <p className="text-2xl font-bold mt-1">{value}</p>
     </div>
   );
 }

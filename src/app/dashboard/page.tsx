@@ -1,141 +1,92 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { Home, Users, Wrench, ClipboardCheck, Settings, AlertTriangle, ArrowRightLeft, Calendar } from 'lucide-react';
+import Shell from '@/components/shell';
+import { StatusBadge, ServiceBadge, ActionButton, NEXT_ACTIONS, updateLeadStatus, fmtDate, EmptyState } from '@/components/ui';
 
-interface KPI {
-  label: string;
-  value: number;
-}
+interface KPI { label: string; value: number }
 
 export default function DashboardPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
   const [kpis, setKpis] = useState<KPI[]>([]);
+  const [leads, setLeads] = useState<any[]>([]);
 
-  useEffect(() => {
-    if (status === 'unauthenticated') router.push('/login');
-  }, [status, router]);
-
-  useEffect(() => {
-    fetch('/api/leads/stats')
-      .then(r => r.json())
-      .then(setKpis)
-      .catch(() => {});
+  const load = useCallback(() => {
+    fetch('/api/leads/stats').then(r => r.json()).then(d => Array.isArray(d) && setKpis(d)).catch(() => {});
+    fetch('/api/leads?limit=50').then(r => r.json()).then(d => setLeads(d.leads || [])).catch(() => {});
   }, []);
 
-  if (status === 'loading') return <div className="p-8">Se încarcă...</div>;
+  useEffect(() => {
+    load();
+    const t = setInterval(load, 30_000); // auto-refresh: reception leaves this open all day
+    return () => clearInterval(t);
+  }, [load]);
+
+  const needsAction = leads.filter(l => l.status === 'new');
+  const inProgress = leads.filter(l => ['confirmed', 'appointment_booked', 'arrived'].includes(l.status));
+
+  const act = async (id: string, status: string) => { await updateLeadStatus(id, status); load(); };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Sidebar */}
-      <aside className="w-56 bg-white border-r p-4 flex flex-col gap-2">
-        <h2 className="text-sm font-bold text-gray-400 uppercase mb-4">EAS Leads</h2>
+    <Shell>
+      {/* KPI strip — only the 4 that matter at a glance */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        {kpis.slice(0, 4).map((kpi, i) => (
+          <div key={i} className="bg-white rounded-lg p-4 border">
+            <p className="text-xs text-gray-500">{kpi.label}</p>
+            <p className="text-3xl font-bold mt-1">{kpi.value}</p>
+          </div>
+        ))}
+      </div>
 
-        <NavItem href="/leads" icon={<Users size={16} />} label="Leaduri" />
-        <NavItem href="/itp" icon={<ClipboardCheck size={16} />} label="ITP" />
-        <NavItem href="/service" icon={<Wrench size={16} />} label="Service" />
-        <NavItem href="/calendar" icon={<Calendar size={16} />} label="Programări" />
-        <NavItem href="/conversions" icon={<ArrowRightLeft size={16} />} label="Conversii" />
-        <NavItem href="/fake-leads" icon={<AlertTriangle size={16} />} label="Fake" />
-        <NavItem href="/settings" icon={<Settings size={16} />} label="Setări" />
-      </aside>
-
-      {/* Main */}
-      <main className="flex-1 p-6">
-        {/* KPI bar */}
-        <div className="grid grid-cols-5 gap-3 mb-6">
-          {kpis.map((kpi, i) => (
-            <div key={i} className="bg-white rounded-lg p-3 border">
-              <p className="text-xs text-gray-400">{kpi.label}</p>
-              <p className="text-2xl font-bold">{kpi.value}</p>
+      {/* PRIORITY 1: leads that need action right now */}
+      <section className="mb-6">
+        <h2 className="flex items-center gap-2 font-semibold mb-3">
+          <span className={`inline-block w-2.5 h-2.5 rounded-full ${needsAction.length ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`} />
+          De procesat acum ({needsAction.length})
+        </h2>
+        <div className="bg-white rounded-lg border divide-y">
+          {needsAction.length === 0 && <EmptyState text="Niciun lead nou. Totul procesat ✓" />}
+          {needsAction.map(lead => (
+            <div key={lead.id} className="flex flex-wrap items-center gap-3 p-3 hover:bg-gray-50">
+              <Link href={`/leads/${lead.id}`} className="flex-1 min-w-0">
+                <p className="font-medium truncate">{lead.name || 'Necunoscut'} <span className="text-gray-400 font-normal">{lead.phone}</span></p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  <ServiceBadge type={lead.service_type} /> · {lead.car_make} {lead.car_model} · {fmtDate(lead.created_at)}
+                </p>
+              </Link>
+              <div className="flex gap-2">
+                {(NEXT_ACTIONS.new || []).map(([label, next, color]) => (
+                  <ActionButton key={next} label={label} color={color} small onClick={() => act(lead.id, next)} />
+                ))}
+              </div>
             </div>
           ))}
         </div>
+      </section>
 
-        <div className="bg-white rounded-lg border p-4">
-          <h3 className="font-semibold mb-2">Leaduri recente</h3>
-          <RecentLeads />
+      {/* PRIORITY 2: pipeline in progress */}
+      <section>
+        <h2 className="font-semibold mb-3">În lucru ({inProgress.length})</h2>
+        <div className="bg-white rounded-lg border divide-y">
+          {inProgress.length === 0 && <EmptyState text="Nimic în lucru" />}
+          {inProgress.map(lead => (
+            <div key={lead.id} className="flex flex-wrap items-center gap-3 p-3 hover:bg-gray-50">
+              <StatusBadge status={lead.status} />
+              <Link href={`/leads/${lead.id}`} className="flex-1 min-w-0">
+                <span className="font-medium">{lead.name || 'Necunoscut'}</span>
+                <span className="text-gray-400 text-sm ml-2">{lead.phone}</span>
+                <span className="text-xs text-gray-400 ml-2">{lead.appointment_at ? `📅 ${fmtDate(lead.appointment_at)}` : ''}</span>
+              </Link>
+              <div className="flex gap-2">
+                {(NEXT_ACTIONS[lead.status] || []).map(([label, next, color]) => (
+                  <ActionButton key={next} label={label} color={color} small onClick={() => act(lead.id, next)} />
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
-      </main>
-    </div>
+      </section>
+    </Shell>
   );
-}
-
-function NavItem({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="flex items-center gap-2 px-3 py-2 rounded text-sm text-gray-700 hover:bg-gray-100"
-    >
-      {icon}
-      {label}
-    </Link>
-  );
-}
-
-function RecentLeads() {
-  const [leads, setLeads] = useState<any[]>([]);
-
-  useEffect(() => {
-    fetch('/api/leads?limit=10')
-      .then(r => r.json())
-      .then(data => setLeads(data.leads || []))
-      .catch(() => {});
-  }, []);
-
-  return (
-    <div className="space-y-2">
-      {leads.map((lead) => (
-        <Link
-          key={lead.id}
-          href={`/leads/${lead.id}`}
-          className="flex items-center justify-between p-2 hover:bg-gray-50 rounded text-sm border-b last:border-0"
-        >
-          <div className="flex items-center gap-3">
-            <StatusBadge status={lead.status} />
-            <span className="font-medium">{lead.name || 'Necunoscut'}</span>
-            <span className="text-gray-400">{lead.phone}</span>
-          </div>
-          <div className="flex items-center gap-3 text-gray-400 text-xs">
-            <ServiceBadge type={lead.service_type} />
-            <span>{lead.source}</span>
-            <span>{new Date(lead.created_at).toLocaleString('ro')}</span>
-          </div>
-        </Link>
-      ))}
-    </div>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const colors: Record<string, string> = {
-    new: 'bg-blue-100 text-blue-700',
-    confirmed: 'bg-green-100 text-green-700',
-    fake: 'bg-red-100 text-red-700',
-    appointment_booked: 'bg-purple-100 text-purple-700',
-    arrived: 'bg-amber-100 text-amber-700',
-    work_completed: 'bg-green-100 text-green-700',
-  };
-  return (
-    <span className={`px-2 py-0.5 rounded text-xs font-medium ${colors[status] || 'bg-gray-100 text-gray-600'}`}>
-      {status}
-    </span>
-  );
-}
-
-function ServiceBadge({ type }: { type: string }) {
-  const labels: Record<string, string> = {
-    itp: 'ITP',
-    mecanica: 'Mecanică',
-    gpl: 'GPL',
-    aer_conditionat: 'AC',
-    diagnoza: 'Diagnoză',
-    electrica: 'Electrică',
-    revizie: 'Revizie',
-  };
-  return <span className="uppercase">{labels[type] || type}</span>;
 }

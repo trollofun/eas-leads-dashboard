@@ -1,174 +1,166 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
-import { useRouter, useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import Shell from '@/components/shell';
+import { StatusBadge, ServiceBadge, ActionButton, NEXT_ACTIONS, updateLeadStatus, fmtDate, Spinner, STATUS_LABELS } from '@/components/ui';
 
 export default function LeadDetailPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
   const params = useParams();
   const [lead, setLead] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [notes, setNotes] = useState('');
+  const [finalValue, setFinalValue] = useState('');
+  const [appointmentAt, setAppointmentAt] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    if (status === 'unauthenticated') router.push('/login');
-  }, [status, router]);
-
-  useEffect(() => {
-    if (params.id) {
-      fetch(`/api/leads/${params.id}`)
-        .then(r => r.json())
-        .then(setLead)
-        .catch(() => {})
-        .finally(() => setLoading(false));
-    }
+  const load = useCallback(() => {
+    if (!params.id) return;
+    fetch(`/api/leads/${params.id}`)
+      .then(r => r.json())
+      .then(l => {
+        setLead(l);
+        setNotes(l.internal_notes || '');
+        setFinalValue(l.final_value ? String(l.final_value) : '');
+        setAppointmentAt(l.appointment_at ? new Date(l.appointment_at).toISOString().slice(0, 16) : '');
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [params.id]);
 
-  if (loading || status === 'loading') return <div className="p-8">Se încarcă...</div>;
-  if (!lead) return <div className="p-8">Lead negăsit</div>;
+  useEffect(() => { load(); }, [load]);
+
+  const act = async (status: string) => {
+    // work_completed with no final value: prompt inline (value drives Google conversion)
+    if (status === 'work_completed' && !finalValue) {
+      const v = window.prompt('Valoare finală lucrare (RON)? Lasă gol pentru valoarea implicită.');
+      if (v) await save({ final_value: Number(v) });
+    }
+    await updateLeadStatus(lead.id, status);
+    load();
+  };
+
+  const save = async (fields: Record<string, any>) => {
+    setSaving(true);
+    await fetch(`/api/leads/${lead.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(fields),
+    });
+    setSaving(false);
+    load();
+  };
+
+  if (loading) return <Shell><Spinner /></Shell>;
+  if (!lead || lead.error) return <Shell><p className="p-8">Lead negăsit</p></Shell>;
 
   return (
-    <div className="min-h-screen p-6 max-w-4xl mx-auto">
-      <Link href="/leads" className="text-sm text-blue-600 mb-4 inline-block">← Înapoi la leaduri</Link>
+    <Shell>
+      <Link href="/leads" className="text-sm text-blue-600 mb-3 inline-block">← Leaduri</Link>
 
-      <h1 className="text-xl font-bold mb-6">
-        <StatusBadge status={lead.status} />
-        <span className="ml-2">{lead.name || 'Necunoscut'}</span>
-      </h1>
-
-      {/* KPI bar */}
-      <div className="grid grid-cols-4 gap-3 mb-6">
-        <InfoCard label="Telefon" value={lead.phone || '—'} />
-        <InfoCard label="Email" value={lead.email || '—'} />
-        <InfoCard label="Mașină" value={`${lead.car_make || ''} ${lead.car_model || ''} ${lead.car_year || ''}`} />
-        <InfoCard label="Înmatriculare" value={lead.registration_number || '—'} />
+      {/* Header: who + status + next action, all in one glance */}
+      <div className="bg-white rounded-lg border p-4 mb-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <StatusBadge status={lead.status} />
+          <h1 className="text-xl font-bold">{lead.name || 'Necunoscut'}</h1>
+          <ServiceBadge type={lead.service_type} />
+          {lead.fake_score > 40 && (
+            <span className="px-2 py-0.5 rounded bg-red-100 text-red-700 text-xs font-semibold">⚠ risc {lead.fake_score}</span>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-4 mt-3 text-sm">
+          {lead.phone && <a href={`tel:${lead.phone}`} className="text-blue-600 font-medium">📞 {lead.phone}</a>}
+          {lead.email && <a href={`mailto:${lead.email}`} className="text-blue-600">✉ {lead.email}</a>}
+          <span className="text-gray-600">🚗 {lead.car_make} {lead.car_model} {lead.car_year} {lead.registration_number ? `· ${lead.registration_number}` : ''}</span>
+        </div>
+        {/* Next actions — big, obvious */}
+        <div className="flex flex-wrap gap-2 mt-4">
+          {(NEXT_ACTIONS[lead.status] || []).map(([label, next, color]) => (
+            <ActionButton key={next} label={label} color={color} onClick={() => act(next)} />
+          ))}
+          {lead.status !== 'fake' && lead.status !== 'new' && (
+            <ActionButton label="Marchează fake" color="gray" onClick={() => act('fake')} />
+          )}
+        </div>
       </div>
 
-      {/* Quick actions */}
-      <div className="flex gap-2 mb-6">
-        {lead.status === 'new' && (
-          <>
-            <ActionButton label="Confirmă" color="green" onClick={() => updateStatus(lead.id, 'confirmed')} />
-            <ActionButton label="Fake" color="red" onClick={() => updateStatus(lead.id, 'fake')} />
-          </>
-        )}
-        {lead.status === 'confirmed' && (
-          <ActionButton label="Programează" color="blue" onClick={() => updateStatus(lead.id, 'appointment_booked')} />
-        )}
-        {lead.status === 'appointment_booked' && (
-          <ActionButton label="Sosit" color="amber" onClick={() => updateStatus(lead.id, 'arrived')} />
-        )}
-        {lead.status === 'arrived' && lead.service_type === 'itp' && (
-          <ActionButton label="ITP admis" color="green" onClick={() => updateStatus(lead.id, 'itp_done')} />
-        )}
-        {lead.status === 'arrived' && (
-          <ActionButton label="Finalizat" color="green" onClick={() => updateStatus(lead.id, 'work_completed')} />
-        )}
-        {lead.status === 'work_completed' && (
-          <ActionButton label="Facturat" color="blue" onClick={() => updateStatus(lead.id, 'invoiced')} />
-        )}
+      <div className="grid md:grid-cols-2 gap-4">
+        {/* Editable operational fields */}
+        <div className="bg-white rounded-lg border p-4">
+          <h3 className="text-sm font-semibold text-gray-500 mb-3">Operațional</h3>
+
+          <label className="block text-xs text-gray-500 mb-1">Programare</label>
+          <div className="flex gap-2 mb-3">
+            <input
+              type="datetime-local"
+              value={appointmentAt}
+              onChange={e => setAppointmentAt(e.target.value)}
+              className="border rounded px-2 py-1.5 text-sm flex-1"
+            />
+            <ActionButton label="Salvează" small disabled={saving}
+              onClick={() => save({ appointment_at: appointmentAt ? new Date(appointmentAt).toISOString() : null })} />
+          </div>
+
+          <label className="block text-xs text-gray-500 mb-1">Valoare finală (RON)</label>
+          <div className="flex gap-2 mb-3">
+            <input
+              type="number"
+              value={finalValue}
+              onChange={e => setFinalValue(e.target.value)}
+              placeholder={lead.estimated_value ? `estimat: ${lead.estimated_value}` : '—'}
+              className="border rounded px-2 py-1.5 text-sm flex-1"
+            />
+            <ActionButton label="Salvează" small disabled={saving}
+              onClick={() => save({ final_value: finalValue ? Number(finalValue) : null })} />
+          </div>
+
+          <label className="block text-xs text-gray-500 mb-1">Notă internă</label>
+          <textarea
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            rows={3}
+            className="border rounded px-2 py-1.5 text-sm w-full mb-2"
+          />
+          <ActionButton label="Salvează nota" small disabled={saving} onClick={() => save({ internal_notes: notes })} />
+        </div>
+
+        {/* Read-only context */}
+        <div className="bg-white rounded-lg border p-4">
+          <h3 className="text-sm font-semibold text-gray-500 mb-3">Context</h3>
+          <InfoRow label="Sursă" value={lead.source || '—'} />
+          <InfoRow label="Mesaj client" value={lead.message || '—'} />
+          <InfoRow label="Creat la" value={fmtDate(lead.created_at)} />
+          <InfoRow label="Sosit la" value={fmtDate(lead.arrived_at)} />
+          <InfoRow label="Conversie Google" value={lead.google_conversion_status || 'not_ready'} />
+          <InfoRow label="Trimisă la" value={fmtDate(lead.google_conversion_sent_at)} />
+        </div>
       </div>
 
-      {/* Details */}
-      <div className="grid grid-cols-2 gap-6">
-        <Section title="Detalii">
-          <InfoRow label="Sursă" value={lead.source} />
-          <InfoRow label="Serviciu" value={lead.service_type} />
-          <InfoRow label="Mesaj" value={lead.message || '—'} />
-          <InfoRow label="Scor risc" value={String(lead.fake_score)} />
-          <InfoRow label="Notă internă" value={lead.internal_notes || '—'} />
-          <InfoRow label="Programare" value={lead.appointment_at ? new Date(lead.appointment_at).toLocaleString('ro') : '—'} />
-          <InfoRow label="Sosit la" value={lead.arrived_at ? new Date(lead.arrived_at).toLocaleString('ro') : '—'} />
-        </Section>
-
-        <Section title="Conversie Google">
-          <InfoRow label="Status conversie" value={lead.google_conversion_status || 'not_ready'} />
-          <InfoRow label="Trimis la" value={lead.google_conversion_sent_at ? new Date(lead.google_conversion_sent_at).toLocaleString('ro') : '—'} />
-          <InfoRow label="Transaction ID" value={lead.google_transaction_id || '—'} />
-          <InfoRow label="Valoare estimată" value={lead.estimated_value ? `${lead.estimated_value} RON` : '—'} />
-          <InfoRow label="Valoare finală" value={lead.final_value ? `${lead.final_value} RON` : '—'} />
-        </Section>
-      </div>
-
-      {/* Event log */}
-      <Section title="Istoric evenimente" className="mt-6">
-        <div className="space-y-2 max-h-64 overflow-y-auto">
-          {lead.lead_events?.map((event: any) => (
-            <div key={event.id} className="flex items-center gap-3 text-sm border-b pb-2">
-              <span className="text-gray-400 text-xs">{new Date(event.created_at).toLocaleString('ro')}</span>
-              <span className="font-medium">{event.event_type}</span>
-              {event.from_status && <span className="text-gray-400">{event.from_status} → {event.to_status}</span>}
+      {/* History */}
+      <div className="bg-white rounded-lg border p-4 mt-4">
+        <h3 className="text-sm font-semibold text-gray-500 mb-3">Istoric</h3>
+        <div className="space-y-1.5 max-h-64 overflow-y-auto">
+          {(lead.lead_events || []).map((event: any) => (
+            <div key={event.id} className="flex items-baseline gap-3 text-sm">
+              <span className="text-gray-400 text-xs whitespace-nowrap">{fmtDate(event.created_at)}</span>
+              <span>{event.event_type === 'status_changed' && event.to_status
+                ? `${STATUS_LABELS[event.from_status] || event.from_status || '?'} → ${STATUS_LABELS[event.to_status] || event.to_status}`
+                : event.event_type}</span>
             </div>
           ))}
+          {(!lead.lead_events || lead.lead_events.length === 0) && <p className="text-sm text-gray-400">Fără evenimente</p>}
         </div>
-      </Section>
-    </div>
-  );
-}
-
-function updateStatus(leadId: string, status: string) {
-  fetch(`/api/leads/${leadId}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status }),
-  }).then(() => window.location.reload());
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const colors: Record<string, string> = {
-    new: 'bg-blue-100 text-blue-700',
-    confirmed: 'bg-green-100 text-green-700',
-    fake: 'bg-red-100 text-red-700',
-    appointment_booked: 'bg-purple-100 text-purple-700',
-    arrived: 'bg-amber-100 text-amber-700',
-    work_completed: 'bg-green-100 text-green-700',
-  };
-  return (
-    <span className={`px-2 py-0.5 rounded text-xs font-medium ${colors[status] || 'bg-gray-100 text-gray-600'}`}>
-      {status}
-    </span>
-  );
-}
-
-function InfoCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="bg-white border rounded p-3">
-      <p className="text-xs text-gray-400">{label}</p>
-      <p className="text-sm font-medium mt-1">{value}</p>
-    </div>
-  );
-}
-
-function ActionButton({ label, color, onClick }: { label: string; color: string; onClick: () => void }) {
-  const colors: Record<string, string> = {
-    green: 'bg-green-600 hover:bg-green-700',
-    red: 'bg-red-600 hover:bg-red-700',
-    blue: 'bg-blue-600 hover:bg-blue-700',
-    amber: 'bg-amber-600 hover:bg-amber-700',
-  };
-  return (
-    <button onClick={onClick} className={`${colors[color]} text-white px-4 py-2 rounded text-sm font-medium`}>
-      {label}
-    </button>
-  );
-}
-
-function Section({ title, children, className = '' }: { title: string; children: React.ReactNode; className?: string }) {
-  return (
-    <div className={`bg-white border rounded-lg p-4 ${className}`}>
-      <h3 className="text-sm font-semibold text-gray-500 mb-3">{title}</h3>
-      {children}
-    </div>
+      </div>
+    </Shell>
   );
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between text-sm py-1 border-b last:border-0">
-      <span className="text-gray-500">{label}</span>
-      <span>{value}</span>
+    <div className="flex justify-between gap-4 text-sm py-1.5 border-b last:border-0">
+      <span className="text-gray-500 shrink-0">{label}</span>
+      <span className="text-right break-words">{value}</span>
     </div>
   );
 }

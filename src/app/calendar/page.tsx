@@ -1,111 +1,63 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import Shell from '@/components/shell';
+import { ServiceBadge, ActionButton, updateLeadStatus, fmtDate, EmptyState } from '@/components/ui';
 
 export default function CalendarPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
   const [leads, setLeads] = useState<any[]>([]);
 
-  useEffect(() => {
-    if (status === 'unauthenticated') router.push('/login');
-  }, [status, router]);
-
-  useEffect(() => {
-    fetch('/api/leads?status=appointment_booked&limit=100')
+  const load = useCallback(() => {
+    fetch('/api/leads?status=appointment_booked&limit=200')
       .then(r => r.json())
-      .then(data => setLeads(data.leads || []))
+      .then(d => setLeads(d.leads || []))
       .catch(() => {});
   }, []);
 
-  if (status === 'loading') return <div className="p-8">Se încarcă...</div>;
+  useEffect(() => { load(); }, [load]);
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  const act = async (id: string, status: string) => { await updateLeadStatus(id, status); load(); };
 
-  const todayAppts = leads.filter(l => {
-    if (!l.appointment_at) return false;
-    const d = new Date(l.appointment_at);
-    return d >= today && d < tomorrow;
-  });
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const futureAppts = leads.filter(l => {
-    if (!l.appointment_at) return false;
-    const d = new Date(l.appointment_at);
-    return d >= tomorrow;
-  });
-
-  const noDate = leads.filter(l => !l.appointment_at);
+  const groups: [string, any[]][] = [
+    ['Astăzi', leads.filter(l => l.appointment_at && new Date(l.appointment_at) >= today && new Date(l.appointment_at) < tomorrow)],
+    ['Viitoare', leads.filter(l => l.appointment_at && new Date(l.appointment_at) >= tomorrow)],
+    ['Fără dată', leads.filter(l => !l.appointment_at)],
+  ];
 
   return (
-    <div className="min-h-screen p-6 max-w-6xl mx-auto">
-      <Link href="/leads" className="text-sm text-blue-600 mb-4 inline-block">← Înapoi</Link>
-      <h1 className="text-xl font-bold mb-4">📅 Programări</h1>
+    <Shell>
+      <h1 className="text-lg font-bold mb-4">Programări</h1>
 
-      <h2 className="font-semibold mb-2">Astăzi ({todayAppts.length})</h2>
-      <div className="bg-white rounded-lg border mb-6">
-        {todayAppts.length === 0 ? (
-          <p className="p-4 text-center text-gray-400 text-sm">Nicio programare astăzi</p>
-        ) : (
-          <table className="w-full text-sm">
-            <tbody>
-              {todayAppts.map(lead => (
-                <tr key={lead.id} className="border-b last:border-0 hover:bg-gray-50">
-                  <td className="p-3">{new Date(lead.appointment_at).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })}</td>
-                  <td className="p-3">{lead.name || '—'}</td>
-                  <td className="p-3 text-xs">{lead.service_type}</td>
-                  <td className="p-3 text-xs">{lead.car_make} {lead.car_model}</td>
-                  <td className="p-3"><Link href={`/leads/${lead.id}`} className="text-blue-600 text-xs">→</Link></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      <h2 className="font-semibold mb-2">Viitoare ({futureAppts.length})</h2>
-      <div className="bg-white rounded-lg border mb-6">
-        {futureAppts.length === 0 ? (
-          <p className="p-4 text-center text-gray-400 text-sm">Nicio programare viitoare</p>
-        ) : (
-          <table className="w-full text-sm">
-            <tbody>
-              {futureAppts.map(lead => (
-                <tr key={lead.id} className="border-b last:border-0 hover:bg-gray-50">
-                  <td className="p-3 text-xs">{new Date(lead.appointment_at).toLocaleString('ro-RO')}</td>
-                  <td className="p-3">{lead.name || '—'}</td>
-                  <td className="p-3 text-xs">{lead.service_type}</td>
-                  <td className="p-3"><Link href={`/leads/${lead.id}`} className="text-blue-600 text-xs">→</Link></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      <h2 className="font-semibold mb-2">Fără dată ({noDate.length})</h2>
-      <div className="bg-white rounded-lg border">
-        {noDate.length === 0 ? (
-          <p className="p-4 text-center text-gray-400 text-sm">Toate programările au dată</p>
-        ) : (
-          <table className="w-full text-sm">
-            <tbody>
-              {noDate.map(lead => (
-                <tr key={lead.id} className="border-b last:border-0 hover:bg-gray-50">
-                  <td className="p-3">{lead.name || '—'}</td>
-                  <td className="p-3 text-xs">{lead.service_type}</td>
-                  <td className="p-3"><Link href={`/leads/${lead.id}`} className="text-blue-600 text-xs">→</Link></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
+      {groups.map(([title, items]) => (
+        <section key={title} className="mb-6">
+          <h2 className="font-semibold mb-2 text-gray-700">{title} ({items.length})</h2>
+          <div className="bg-white rounded-lg border divide-y">
+            {items.length === 0 && <EmptyState text={title === 'Fără dată' ? 'Toate programările au dată ✓' : 'Nicio programare'} />}
+            {items.map(lead => (
+              <div key={lead.id} className="flex flex-wrap items-center gap-3 p-3 hover:bg-gray-50">
+                <span className="font-mono text-sm font-medium min-w-[90px]">
+                  {lead.appointment_at
+                    ? title === 'Astăzi'
+                      ? new Date(lead.appointment_at).toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' })
+                      : fmtDate(lead.appointment_at)
+                    : '—'}
+                </span>
+                <Link href={`/leads/${lead.id}`} className="flex-1 min-w-0">
+                  <span className="font-medium">{lead.name || 'Necunoscut'}</span>
+                  <span className="text-gray-400 text-sm ml-2">{lead.phone}</span>
+                </Link>
+                <ServiceBadge type={lead.service_type} />
+                <span className="text-xs text-gray-400">{lead.car_make} {lead.car_model}</span>
+                <ActionButton label="A sosit" color="amber" small onClick={() => act(lead.id, 'arrived')} />
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
+    </Shell>
   );
 }
