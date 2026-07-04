@@ -1,0 +1,32 @@
+{
+  "name": "eas-leads-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.5.0",
+    "bcryptjs": "^2.4.3",
+    "google-auth-library": "^9.15.1",
+    "lucide-react": "^0.471.1",
+    "next": "^15.2.1",
+    "next-auth": "^5.0.0-beta.25",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^22.13.1",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "prisma": "^6.5.0",
+    "tailwindcss": "^4.0.7",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3",
+    "@tailwindcss/postcss": "^4.0.7"
+  }
+}

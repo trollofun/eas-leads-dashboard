@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+@theme {
+  --color-eas-blue: #1e40af;
+  --color-eas-green: #16a34a;
+  --color-eas-red: #dc2626;
+  --color-eas-amber: #d97706;
+  --color-eas-gray: #6b7280;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}

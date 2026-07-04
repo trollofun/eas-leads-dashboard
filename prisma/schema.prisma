@@ -1,0 +1,212 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model app_users {
+  id        String   @id @default(uuid()) @db.Uuid
+  created_at DateTime @default(now()) @map("created_at")
+  email     String   @unique
+  name      String?
+  role      String   @default("viewer")
+  active    Boolean  @default(true)
+  password_hash String? @map("password_hash")
+
+  @@map("app_users")
+}
+
+model ad_clicks {
+  id        String   @id @default(uuid()) @db.Uuid
+  created_at DateTime @default(now()) @map("created_at")
+
+  gclid     String?
+  gbraid    String?
+  wbraid    String?
+
+  utm_source   String? @map("utm_source")
+  utm_medium   String? @map("utm_medium")
+  utm_campaign String? @map("utm_campaign")
+  utm_term     String? @map("utm_term")
+  utm_content  String? @map("utm_content")
+
+  landing_page String? @map("landing_page")
+  referrer     String?
+
+  ip_hash         String? @map("ip_hash")
+  user_agent_hash String? @map("user_agent_hash")
+  user_agent      String? @map("user_agent")
+
+  first_party_cookie_id String? @map("first_party_cookie_id")
+  session_id            String? @map("session_id")
+
+  browser_risk_score  Int      @default(0) @map("browser_risk_score")
+  browser_risk_reasons Json    @default("[]") @map("browser_risk_reasons")
+
+  leads leads[]
+
+  @@index([created_at(sort: Desc)])
+  @@map("ad_clicks")
+}
+
+model leads {
+  id         String   @id @default(uuid()) @db.Uuid
+  created_at DateTime @default(now()) @map("created_at")
+  updated_at DateTime @default(now()) @map("updated_at")
+
+  ad_click_id String? @map("ad_click_id")
+  ad_click    ad_clicks? @relation(fields: [ad_click_id], references: [id])
+
+  source       String @default("website")
+  service_type String @default("altul") @map("service_type")
+
+  status   String @default("new")
+  priority String @default("normal")
+
+  name         String?
+  phone        String?
+  phone_hash   String? @map("phone_hash")
+  email        String?
+  email_hash   String? @map("email_hash")
+
+  car_make          String?  @map("car_make")
+  car_model         String?  @map("car_model")
+  car_year          Int?     @map("car_year")
+  registration_number String? @map("registration_number")
+
+  message         String?
+  internal_notes  String?  @map("internal_notes")
+
+  appointment_at DateTime? @map("appointment_at")
+  arrived_at     DateTime? @map("arrived_at")
+
+  assigned_to String? @map("assigned_to")
+
+  estimated_value Decimal? @map("estimated_value") @db.Decimal(10, 2)
+  final_value     Decimal? @map("final_value") @db.Decimal(10, 2)
+  currency        String   @default("RON")
+
+  fake_score  Int      @default(0) @map("fake_score")
+  fake_reasons Json    @default("[]") @map("fake_reasons")
+  fake_reason String? @map("fake_reason")
+
+  google_conversion_status   String?    @default("not_ready") @map("google_conversion_status")
+  google_conversion_sent_at DateTime?  @map("google_conversion_sent_at")
+  google_transaction_id     String?    @unique @map("google_transaction_id")
+
+  consent_ad_user_data      Boolean?   @map("consent_ad_user_data")
+  consent_ad_personalization Boolean?  @map("consent_ad_personalization")
+  consent_collected_at      DateTime?  @map("consent_collected_at")
+  consent_method            String?    @map("consent_method")
+
+  idempotency_key String? @unique @map("idempotency_key")
+
+  vehicle_records  vehicle_records[]
+  lead_events      lead_events[]
+  google_conversion_queue google_conversion_queue[]
+  blocked_signals       blocked_signals[]
+
+  @@index([created_at(sort: Desc)])
+  @@index([status])
+  @@index([service_type])
+  @@index([appointment_at])
+  @@index([phone_hash])
+  @@index([email_hash])
+  @@index([registration_number])
+  @@map("leads")
+}
+
+model vehicle_records {
+  id        String   @id @default(uuid()) @db.Uuid
+  created_at DateTime @default(now()) @map("created_at")
+  lead_id   String?  @map("lead_id")
+  lead      leads?   @relation(fields: [lead_id], references: [id])
+
+  registration_number String? @map("registration_number")
+  vin                 String?
+
+  make  String?
+  model String?
+  year  Int?
+
+  itp_expiry_date DateTime? @map("itp_expiry_date")
+  itp_result      String?   @map("itp_result")
+  itp_done_at     DateTime? @map("itp_done_at")
+  itp_inspector_id String?  @map("itp_inspector_id")
+
+  gpl_present Boolean? @map("gpl_present")
+  gpl_notes   String?  @map("gpl_notes")
+
+  notes String?
+
+  @@map("vehicle_records")
+}
+
+model lead_events {
+  id         String   @id @default(uuid()) @db.Uuid
+  created_at DateTime @default(now()) @map("created_at")
+
+  lead_id    String?  @map("lead_id")
+  lead       leads?   @relation(fields: [lead_id], references: [id])
+  actor_id   String?  @map("actor_id")
+
+  event_type String   @map("event_type")
+  from_status String?  @map("from_status")
+  to_status   String?  @map("to_status")
+
+  metadata Json @default("{}")
+
+  @@index([lead_id])
+  @@map("lead_events")
+}
+
+model blocked_signals {
+  id        String   @id @default(uuid()) @db.Uuid
+  created_at DateTime @default(now()) @map("created_at")
+
+  reason           String   @map("reason")
+  signal_type      String   @map("signal_type")
+  signal_value_hash String @map("signal_value_hash")
+
+  lead_id String? @map("lead_id")
+  lead    leads?  @relation(fields: [lead_id], references: [id])
+
+  score      Int       @default(0)
+  expires_at DateTime? @map("expires_at")
+
+  @@index([signal_type, signal_value_hash])
+  @@map("blocked_signals")
+}
+
+model google_conversion_queue {
+  id        String   @id @default(uuid()) @db.Uuid
+  created_at DateTime @default(now()) @map("created_at")
+  processed_at DateTime? @map("processed_at")
+
+  lead_id String? @map("lead_id")
+  lead    leads?  @relation(fields: [lead_id], references: [id])
+
+  conversion_event String @map("conversion_event")
+  transaction_id   String @unique @map("transaction_id")
+
+  status    String @default("pending")
+  attempts  Int    @default(0)
+  last_error String? @map("last_error")
+
+  request_id String? @map("request_id")
+  payload    Json
+
+  @@index([status])
+  @@map("google_conversion_queue")
+}
+
+model dashboard_settings {
+  key       String @id
+  value     Json
+  updated_at DateTime @default(now()) @map("updated_at")
+
+  @@map("dashboard_settings")
+}
