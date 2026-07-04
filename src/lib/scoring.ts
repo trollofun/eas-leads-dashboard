@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from './db';
 
 const BLOCK_DURATIONS = {
   phone: 180 * 24 * 60 * 60 * 1000,
