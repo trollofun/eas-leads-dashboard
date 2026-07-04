@@ -37,6 +37,7 @@ model ad_clicks {
   referrer     String?
 
   ip_hash         String? @map("ip_hash")
+  ip_address      String? @map("ip_address") // raw IP for Google ipData exclusion; purge >30d
   user_agent_hash String? @map("user_agent_hash")
   user_agent      String? @map("user_agent")
 

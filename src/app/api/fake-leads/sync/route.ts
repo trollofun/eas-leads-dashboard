@@ -16,7 +16,10 @@ export async function POST() {
       fake_synced_to_google: false,
       OR: [{ phone_hash: { not: null } }, { email_hash: { not: null } }],
     },
-    select: { id: true, phone_hash: true, email_hash: true },
+    select: {
+      id: true, phone_hash: true, email_hash: true,
+      ad_click: { select: { ip_address: true, created_at: true } },
+    },
     take: 500,
   });
 
@@ -25,6 +28,10 @@ export async function POST() {
   const members = fakes.map(f => ({
     hashedPhoneNumber: f.phone_hash || undefined,
     hashedEmailAddress: f.email_hash || undefined,
+    ipData: f.ad_click?.ip_address ? [{
+      ipAddress: f.ad_click.ip_address,
+      observeStartTime: f.ad_click.created_at.toISOString(),
+    }] : undefined,
   }));
 
   const result = await syncAudienceList(members, cfg.listId);

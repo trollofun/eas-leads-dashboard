@@ -3,6 +3,7 @@ const DATA_MANAGER_BASE = 'https://datamanager.googleapis.com/v1';
 interface CustomerMatchMember {
   hashedPhoneNumber?: string;
   hashedEmailAddress?: string;
+  ipData?: { ipAddress: string; observeStartTime?: string; observeEndTime?: string }[];
 }
 
 interface SyncResult {
@@ -44,7 +45,10 @@ export async function syncAudienceList(members: CustomerMatchMember[], listId: s
         const userIdentifiers: any[] = [];
         if (m.hashedPhoneNumber) userIdentifiers.push({ phoneNumber: m.hashedPhoneNumber });
         if (m.hashedEmailAddress) userIdentifiers.push({ emailAddress: m.hashedEmailAddress });
-        return { compositeData: { userData: { userIdentifiers } } };
+        const compositeData: any = { userData: { userIdentifiers } };
+        // v1.7: raw IPs (never hashed) improve match rate for Google Ads Customer Match
+        if (m.ipData?.length) compositeData.ipData = m.ipData;
+        return { compositeData };
       }),
       consent: { adUserData: 'CONSENT_GRANTED', adPersonalization: 'CONSENT_GRANTED' },
       encoding: 'HEX',

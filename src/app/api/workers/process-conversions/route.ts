@@ -103,12 +103,22 @@ export async function GET() {
             fake_synced_to_google: false,
             OR: [{ phone_hash: { not: null } }, { email_hash: { not: null } }],
           },
-          select: { id: true, phone_hash: true, email_hash: true },
+          select: {
+            id: true, phone_hash: true, email_hash: true,
+            ad_click: { select: { ip_address: true, created_at: true } },
+          },
           take: 500,
         });
         if (fakes.length) {
           const result = await syncAudienceList(
-            fakes.map(f => ({ hashedPhoneNumber: f.phone_hash || undefined, hashedEmailAddress: f.email_hash || undefined })),
+            fakes.map(f => ({
+              hashedPhoneNumber: f.phone_hash || undefined,
+              hashedEmailAddress: f.email_hash || undefined,
+              ipData: f.ad_click?.ip_address ? [{
+                ipAddress: f.ad_click.ip_address,
+                observeStartTime: f.ad_click.created_at.toISOString(),
+              }] : undefined,
+            })),
             cfg.listId
           );
           if (result.uploaded > 0) {
@@ -123,6 +133,12 @@ export async function GET() {
     } catch (e: any) {
       console.error('Fake exclusion sync error:', e.message);
     }
+
+    // GDPR: purge raw IPs older than 30 days (hash-ul rămâne pentru dedup)
+    await prisma.ad_clicks.updateMany({
+      where: { ip_address: { not: null }, created_at: { lt: new Date(Date.now() - 30 * 86400000) } },
+      data: { ip_address: null },
+    }).catch(() => {});
 
     return NextResponse.json({ processed, failed, total: jobs.length, fakesSynced });
   } catch (error: any) {

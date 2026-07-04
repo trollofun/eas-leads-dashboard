@@ -95,6 +95,7 @@ export async function POST(request: NextRequest) {
           session_id: payload.ad_click.session_id,
           browser_risk_score: payload.ad_click.browser_risk_score || 0,
           browser_risk_reasons: payload.ad_click.browser_risk_reasons || '[]',
+          ip_address: payload.ad_click.ip_address || null,
         },
       });
       adClickId = adClick.id;
