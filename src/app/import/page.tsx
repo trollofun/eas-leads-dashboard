@@ -19,11 +19,7 @@ export default function ImportPage() {
   const [msg, setMsg] = useState('');
   const csvRef = useRef<HTMLInputElement>(null);
 
-  // sync state
-  const [syncing, setSyncing] = useState(false);
-  const [syncMsg, setSyncMsg] = useState('');
-
-  const unsyncedCount = items.filter(i => !i.synced_to_google && i.source !== 'manual').length || items.filter(i => !i.synced_to_google).length;
+  const unsyncedCount = items.filter(i => !i.synced_to_google).length;
 
   const load = useCallback(() => {
     fetch('/api/customer-import?limit=100')
@@ -90,28 +86,15 @@ export default function ImportPage() {
     if (csvRef.current) csvRef.current.value = '';
   };
 
-  const syncToGoogle = async () => {
-    setSyncing(true); setSyncMsg('');
-    try {
-      const res = await fetch('/api/customer-match/sync', { method: 'POST' });
-      const d = await res.json();
-      if (d.errors?.length) {
-        setSyncMsg(`⚠ ${d.synced} sync, erori: ${d.errors[0].slice(0, 100)}`);
-      } else {
-        setSyncMsg(`✓ ${d.synced} trimiși către Google`);
-      }
-      load();
-    } catch {
-      setSyncMsg('Eroare la sincronizare');
-    }
-    setSyncing(false);
+  const exportCSV = () => {
+    window.location.href = '/api/customer-match/export?unsynced=true';
   };
 
   return (
     <Shell>
       <h1 className="text-lg font-bold mb-4">Import clienți (Customer Match)</h1>
       <p className="text-sm text-gray-500 mb-4">
-        Clienți de pe cererile GDPR semnate la recepție. Datele sunt hash-uite și trimise Google pentru potrivire.
+        Clienți de pe cererile GDPR semnate la recepție. Export CSV pentru upload în Google Ads.
       </p>
 
       <div className="grid md:grid-cols-2 gap-6">
@@ -138,31 +121,29 @@ export default function ImportPage() {
           </div>
         </div>
 
-        {/* CSV + sync */}
+        {/* CSV + Export */}
         <div className="bg-white rounded-lg border p-4">
-          <h2 className="font-semibold mb-3">Import CSV</h2>
-          <p className="text-xs text-gray-500 mb-3">
-            Format: <code>nume, telefon, email, adresa</code> — prima linie = antet.
+          <h2 className="font-semibold mb-3">Import / Export CSV</h2>
+
+          <p className="text-xs text-gray-500 mb-2">
+            <b>Import:</b> format <code>nume, telefon, email, adresa</code> — prima linie = antet.
           </p>
           <input ref={csvRef} type="file" accept=".csv" onChange={handleCSV}
             className="block w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
-          <p className="text-xs text-gray-400 mt-2">
-            Duplicări telefon skip automat.
-          </p>
+          <p className="text-xs text-gray-400 mt-1">Duplicări skip automat.</p>
 
           <div className="border-t mt-4 pt-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600">
-                {unsyncedCount > 0 ? `${unsyncedCount} de sincronizat` : 'Totul sincronizat ✓'}
-              </span>
+            <p className="text-xs text-gray-500 mb-2">
+              <b>Export:</b> fișier CSV gata de upload în Google Ads → Audiences → Clienti ITP → Adaugă membri
+            </p>
+            <div className="flex items-center gap-3">
               <ActionButton
-                label={syncing ? 'Se trimite...' : '→ Sincronizează cu Google'}
-                onClick={syncToGoogle}
-                disabled={syncing || unsyncedCount === 0}
+                label={`⬇ Export ${unsyncedCount > 0 ? unsyncedCount + ' clienți' : 'toți'}`}
+                onClick={exportCSV}
                 small
               />
+              <span className="text-xs text-gray-400">Format Google Ads Customer Match</span>
             </div>
-            {syncMsg && <p className="text-xs text-gray-600 mt-1">{syncMsg}</p>}
           </div>
         </div>
       </div>
