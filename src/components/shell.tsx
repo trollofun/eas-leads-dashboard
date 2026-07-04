@@ -4,7 +4,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { LayoutDashboard, Users, Wrench, ClipboardCheck, Settings, AlertTriangle, ArrowRightLeft, Calendar, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Wrench, ClipboardCheck, Settings, AlertTriangle, ArrowRightLeft, Calendar, LogOut, UserPlus } from 'lucide-react';
 import { Spinner } from './ui';
 
 const NAV = [
@@ -13,6 +13,7 @@ const NAV = [
   { href: '/calendar', icon: Calendar, label: 'Programări' },
   { href: '/itp', icon: ClipboardCheck, label: 'ITP' },
   { href: '/service', icon: Wrench, label: 'Service' },
+  { href: '/import', icon: UserPlus, label: 'Clienți' },
   { href: '/conversions', icon: ArrowRightLeft, label: 'Conversii' },
   { href: '/fake-leads', icon: AlertTriangle, label: 'Fake' },
   { href: '/settings', icon: Settings, label: 'Setări' },

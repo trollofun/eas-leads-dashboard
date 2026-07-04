@@ -205,6 +205,24 @@ model google_conversion_queue {
   @@map("google_conversion_queue")
 }
 
+model customer_imports {
+  id              String    @id @default(uuid()) @db.Uuid
+  created_at      DateTime  @default(now()) @map("created_at")
+  name            String
+  phone           String?
+  phone_hash      String?   @map("phone_hash")
+  email           String?
+  address         String?
+  source          String    @default("manual")
+  imported_by     String?   @map("imported_by")
+  synced_to_google Boolean @default(false) @map("synced_to_google")
+  synced_at       DateTime? @map("synced_at")
+
+  @@index([phone_hash])
+  @@index([created_at(sort: Desc)])
+  @@map("customer_imports")
+}
+
 model dashboard_settings {
   key       String @id
   value     Json
