@@ -26,42 +26,59 @@ export async function sendReceptionEmail(lead: NotificationInput) {
   }
 
   const now = Date.now();
-  const tokenConfirm = signLeadAction({ leadId: lead.leadId, action: 'confirm', expiresAt: now + 7 * 24 * 60 * 60 * 1000 });
   const tokenFake = signLeadAction({ leadId: lead.leadId, action: 'fake', expiresAt: now + 7 * 24 * 60 * 60 * 1000 });
-  const tokenNoAnswer = signLeadAction({ leadId: lead.leadId, action: 'no_answer', expiresAt: now + 7 * 24 * 60 * 60 * 1000 });
-  const tokenBook = signLeadAction({ leadId: lead.leadId, action: 'book', expiresAt: now + 7 * 24 * 60 * 60 * 1000 });
+  const tokenAccept = signLeadAction({ leadId: lead.leadId, action: 'accept', expiresAt: now + 7 * 24 * 60 * 60 * 1000 });
+  const tokenComplete = signLeadAction({ leadId: lead.leadId, action: 'complete', expiresAt: now + 7 * 24 * 60 * 60 * 1000 });
 
   const subject = `[EAS] Lead nou: ${lead.name || 'Necunoscut'} — ${lead.serviceType} (${lead.source})`;
 
-  const html = `
-<!DOCTYPE html>
-<html>
-<body style="font-family:system-ui;max-width:600px;margin:0 auto;padding:20px">
-<h2>🚗 Lead nou primit</h2>
-<table style="border-collapse:collapse;width:100%">
-<tr><td style="padding:6px 12px;font-weight:bold">Nume</td><td style="padding:6px 12px">${lead.name || '—'}</td></tr>
-<tr><td style="padding:6px 12px;font-weight:bold">Telefon</td><td style="padding:6px 12px">${lead.phone || '—'}</td></tr>
-<tr><td style="padding:6px 12px;font-weight:bold">Serviciu</td><td style="padding:6px 12px">${lead.serviceType}</td></tr>
-<tr><td style="padding:6px 12px;font-weight:bold">Sursă</td><td style="padding:6px 12px">${lead.source}</td></tr>
-<tr><td style="padding:6px 12px;font-weight:bold">Mesaj</td><td style="padding:6px 12px">${lead.message || '—'}</td></tr>
-<tr><td style="padding:6px 12px;font-weight:bold">Fake score</td><td style="padding:6px 12px">${lead.fakeScore}/100</td></tr>
-</table>
+  const html = `<!DOCTYPE html>
+<html lang="ro">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+<div style="max-width:480px;margin:24px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08)">
 
-<h3>Acțiuni rapide</h3>
-<table style="border-collapse:collapse">
-<tr>
-<td style="padding:4px"><a href="${appUrl}/api/public/lead-action?token=${tokenConfirm}" style="display:inline-block;padding:10px 20px;background:#22c55e;color:white;text-decoration:none;border-radius:6px">✅ Confirmă</a></td>
-<td style="padding:4px"><a href="${appUrl}/api/public/lead-action?token=${tokenBook}" style="display:inline-block;padding:10px 20px;background:#3b82f6;color:white;text-decoration:none;border-radius:6px">📅 Programează</a></td>
-</tr>
-<tr>
-<td style="padding:4px"><a href="${appUrl}/api/public/lead-action?token=${tokenNoAnswer}" style="display:inline-block;padding:10px 20px;background:#f59e0b;color:white;text-decoration:none;border-radius:6px">📞 Fără răspuns</a></td>
-<td style="padding:4px"><a href="${appUrl}/api/public/lead-action?token=${tokenFake}" style="display:inline-block;padding:10px 20px;background:#ef4444;color:white;text-decoration:none;border-radius:6px">🚫 Fake</a></td>
-</tr>
-</table>
+  <!-- Header -->
+  <div style="background:#1a1a2e;color:#fff;padding:20px 24px">
+    <div style="font-size:13px;opacity:.7;margin-bottom:4px">🚗 Euro Auto Service</div>
+    <div style="font-size:18px;font-weight:600">Lead nou: ${lead.name || 'Necunoscut'}</div>
+  </div>
 
-<p style="margin-top:20px;font-size:12px;color:#666">
-  <a href="${appUrl}/leads/${lead.leadId}">Deschide în dashboard →</a>
-</p>
+  <!-- Info -->
+  <div style="padding:20px 24px">
+    <table style="border-collapse:collapse;width:100%;font-size:14px">
+      <tr><td style="padding:6px 0;color:#666;width:100px">Telefon</td><td style="padding:6px 0;font-weight:500">${lead.phone || '—'}</td></tr>
+      <tr><td style="padding:6px 0;color:#666">Serviciu</td><td style="padding:6px 0;font-weight:500">${lead.serviceType}</td></tr>
+      <tr><td style="padding:6px 0;color:#666">Sursă</td><td style="padding:6px 0;font-weight:500">${lead.source}</td></tr>
+      ${lead.message ? `<tr><td style="padding:6px 0;color:#666">Mesaj</td><td style="padding:6px 0">${lead.message}</td></tr>` : ''}
+      <tr><td style="padding:6px 0;color:#666">Scor fake</td><td style="padding:6px 0;font-weight:500;${lead.fakeScore >= 60 ? 'color:#ef4444' : ''}">${lead.fakeScore}/100</td></tr>
+    </table>
+  </div>
+
+  <!-- Actions -->
+  <div style="padding:0 24px 24px">
+    <div style="font-size:12px;color:#999;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Acțiuni rapide</div>
+    <table style="border-collapse:collapse;width:100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="padding:0 6px 8px 0;width:33.33%">
+          <a href="${appUrl}/api/public/lead-action?token=${tokenFake}" style="display:block;padding:14px 8px;background:#fee2e2;color:#dc2626;text-decoration:none;border-radius:8px;text-align:center;font-weight:600;font-size:13px">🚫 Spam</a>
+        </td>
+        <td style="padding:0 0 8px 6px;width:33.33%">
+          <a href="${appUrl}/api/public/lead-action?token=${tokenAccept}" style="display:block;padding:14px 8px;background:#dcfce7;color:#16a34a;text-decoration:none;border-radius:8px;text-align:center;font-weight:600;font-size:13px">✅ Acceptă</a>
+        </td>
+        <td style="padding:0 0 8px 0;width:33.33%">
+          <a href="${appUrl}/api/public/lead-action?token=${tokenComplete}" style="display:block;padding:14px 8px;background:#dbeafe;color:#2563eb;text-decoration:none;border-radius:8px;text-align:center;font-weight:600;font-size:13px">🏁 Finalizează</a>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Footer -->
+  <div style="padding:12px 24px;border-top:1px solid #f0f0f0">
+    <a href="${appUrl}/leads/${lead.leadId}" style="font-size:12px;color:#999;text-decoration:none">Deschide în dashboard →</a>
+  </div>
+
+</div>
 </body>
 </html>`;
 

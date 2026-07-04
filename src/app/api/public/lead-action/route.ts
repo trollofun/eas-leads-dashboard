@@ -25,6 +25,8 @@ export async function GET(request: NextRequest) {
       fake: { status: 'fake', event_type: 'fake_lead' },
       no_answer: { status: 'no_answer', event_type: 'no_answer' },
       book: { status: 'appointment_booked', event_type: 'appointment_booked' },
+      accept: { status: 'appointment_accepted', event_type: 'appointment_accepted' },
+      complete: { status: 'completed', event_type: 'work_done' },
     };
 
     const mapping = actionMap[action];

@@ -1,0 +1,424 @@
+{
+  "updatedAt": "2026-04-02T15:01:29.031Z",
+  "createdAt": "2026-01-31T22:06:03.568Z",
+  "id": "NXzQqlYe6UcvMz1E",
+  "name": "EAS - Leads",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "eas-leads",
+        "options": {
+          "responseCode": 200
+        },
+        "responseMode": "responseNode"
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "c33750d5-578e-44dd-bc55-1ec4be47e4d3",
+      "name": "Webhook",
+      "webhookId": "feba8935-0089-411e-8c80-0c6f8e315d88"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "johnyd",
+        "remoteJid": "+40729440127",
+        "messageText": "=Am primit o solicitare noua:\n\nNume: {{ $json.body.lead.name }}\nTelefon: {{ $json.body.lead.phone }}\nMesaj: {{ $json.body.lead.message }}\n\n\nServiciu: {{ $json.body.service.code }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "6ec64c1b-5cf8-4f09-947b-f301b6eb5446",
+      "name": "Send Whatsapp Mesage",
+      "credentials": {
+        "evolutionApi": {
+          "id": "vdK0e4TVo1SCSVTM",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "birou@euroautoservice.ro",
+        "subject": "Solicitare noua",
+        "message": "=Bună ziua,  <br> <br>\nUn client nou a efectuat o solicitare noua.  \n<br> <br>\n Detalii:<br> - Nume client: {{ $('Webhook').item.json.body.lead.name }} <br> - Număr de telefon:{{ $('Webhook').item.json.body.lead.phone }}<br> - \nEmail:{{ $('Webhook').item.json.body.lead.email }}<br> - Mesaj.<br> <br> - : {{ $('Webhook').item.json.body.lead.message }} <br> Vă rugăm să contactați clientul pentru confirmarea. <br> Informatii despre formular: \n<br> Gclic: {{ $('Webhook').item.json.body.tracking.gclid }}<br>\n<br> Serviciu: {{ $('Webhook').item.json.body.service.code }}<br>\n<br> Sursa: {{ $('Webhook').item.json.body.tracking.page_url }}<br>\n<br> User_agent: {{ $('Webhook').item.json.body.meta.user_agent }}<br>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "0a243f05-70fb-45b2-af63-b2478c113190",
+      "name": "Send a message",
+      "webhookId": "cc7bfe52-6fe9-42ff-8e76-78bf71ca8e08",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "dMQpXLDUfdoh29cv",
+          "name": "Gmail TIT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": {
+          "ok": true,
+          "message": "Lead received successfully"
+        },
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        624,
+        0
+      ],
+      "id": "a01cb9bf-7a48-4fc2-a6a3-fbc27a7c7b01",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Send Whatsapp Mesage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Whatsapp Mesage": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n.uitdeitp.ro",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+            "content-length": "790",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "ro-RO,ro;q=0.9,en-US;q=0.8,en;q=0.7,ru;q=0.6",
+            "content-type": "application/json",
+            "origin": "https://dev.euroautoservice.ro",
+            "priority": "u=1, i",
+            "referer": "https://dev.euroautoservice.ro/",
+            "sec-ch-ua": "\"Not:A-Brand\";v=\"99\", \"Google Chrome\";v=\"145\", \"Chromium\";v=\"145\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "82.79.86.94",
+            "x-forwarded-host": "n8n.uitdeitp.ro",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "c5c9b080ce83",
+            "x-real-ip": "82.79.86.94"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "schema": "eas.lead.v1",
+            "form": {
+              "type": "home-cta",
+              "name": "home-cta-111154",
+              "variant": "default"
+            },
+            "lead": {
+              "name": "teo",
+              "phone": "0729440132",
+              "email": null,
+              "message": "test",
+              "cv": null,
+              "positions": null
+            },
+            "service": {
+              "code": "gpl",
+              "label": null
+            },
+            "tracking": {
+              "utm_source": null,
+              "utm_medium": null,
+              "utm_campaign": null,
+              "utm_content": null,
+              "utm_term": null,
+              "gclid": null,
+              "gbraid": null,
+              "wbraid": null,
+              "fbclid": null,
+              "msclkid": null,
+              "page_url": "https://dev.euroautoservice.ro/",
+              "referrer": null
+            },
+            "meta": {
+              "event_id": "120b7320-452e-4630-88f3-9cae9c4096bd",
+              "submitted_at": "",
+              "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+              "locale": "ro"
+            },
+            "consent": {
+              "contact_ok": true,
+              "marketing_ok": false
+            },
+            "security": {
+              "honeypot": null,
+              "turnstile_token": null
+            }
+          },
+          "webhookUrl": "https://n8n.uitdeitp.ro/webhook-test/eas-leads",
+          "executionMode": "test"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "versionId": "2a344cf2-1a7e-4dee-8683-890eca6ec9d5",
+  "activeVersionId": "2a344cf2-1a7e-4dee-8683-890eca6ec9d5",
+  "versionCounter": 97,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-01-31T22:06:03.568Z",
+      "createdAt": "2026-01-31T22:06:03.568Z",
+      "role": "workflow:owner",
+      "workflowId": "NXzQqlYe6UcvMz1E",
+      "projectId": "5auLaqSVFLpuR32L",
+      "project": {
+        "updatedAt": "2025-03-02T21:26:04.225Z",
+        "createdAt": "2025-03-02T21:06:20.500Z",
+        "id": "5auLaqSVFLpuR32L",
+        "name": "John Tuca <tuca.ioan.teodor@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "178d9447-d016-47aa-bd6b-6035532a6e2a"
+      }
+    }
+  ],
+  "tags": [
+    {
+      "updatedAt": "2026-03-19T15:11:01.674Z",
+      "createdAt": "2026-03-19T15:11:01.674Z",
+      "id": "lVCWHOMrYhx0vhB7",
+      "name": "hugo"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-04-02T15:01:29.035Z",
+    "createdAt": "2026-04-02T15:01:29.035Z",
+    "versionId": "2a344cf2-1a7e-4dee-8683-890eca6ec9d5",
+    "workflowId": "NXzQqlYe6UcvMz1E",
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "eas-leads",
+          "options": {
+            "responseCode": 200
+          },
+          "responseMode": "responseNode"
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          0,
+          0
+        ],
+        "id": "c33750d5-578e-44dd-bc55-1ec4be47e4d3",
+        "name": "Webhook",
+        "webhookId": "feba8935-0089-411e-8c80-0c6f8e315d88"
+      },
+      {
+        "parameters": {
+          "resource": "messages-api",
+          "instanceName": "johnyd",
+          "remoteJid": "+40729440127",
+          "messageText": "=Am primit o solicitare noua:\n\nNume: {{ $json.body.lead.name }}\nTelefon: {{ $json.body.lead.phone }}\nMesaj: {{ $json.body.lead.message }}\n\n\nServiciu: {{ $json.body.service.code }}",
+          "options_message": {}
+        },
+        "type": "n8n-nodes-evolution-api.evolutionApi",
+        "typeVersion": 1,
+        "position": [
+          208,
+          0
+        ],
+        "id": "6ec64c1b-5cf8-4f09-947b-f301b6eb5446",
+        "name": "Send Whatsapp Mesage",
+        "credentials": {
+          "evolutionApi": {
+            "id": "vdK0e4TVo1SCSVTM",
+            "name": "Evolution account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "sendTo": "birou@euroautoservice.ro",
+          "subject": "Solicitare noua",
+          "message": "=Bună ziua,  <br> <br>\nUn client nou a efectuat o solicitare noua.  \n<br> <br>\n Detalii:<br> - Nume client: {{ $('Webhook').item.json.body.lead.name }} <br> - Număr de telefon:{{ $('Webhook').item.json.body.lead.phone }}<br> - \nEmail:{{ $('Webhook').item.json.body.lead.email }}<br> - Mesaj.<br> <br> - : {{ $('Webhook').item.json.body.lead.message }} <br> Vă rugăm să contactați clientul pentru confirmarea. <br> Informatii despre formular: \n<br> Gclic: {{ $('Webhook').item.json.body.tracking.gclid }}<br>\n<br> Serviciu: {{ $('Webhook').item.json.body.service.code }}<br>\n<br> Sursa: {{ $('Webhook').item.json.body.tracking.page_url }}<br>\n<br> User_agent: {{ $('Webhook').item.json.body.meta.user_agent }}<br>",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.gmail",
+        "typeVersion": 2.2,
+        "position": [
+          416,
+          0
+        ],
+        "id": "0a243f05-70fb-45b2-af63-b2478c113190",
+        "name": "Send a message",
+        "webhookId": "cc7bfe52-6fe9-42ff-8e76-78bf71ca8e08",
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "dMQpXLDUfdoh29cv",
+            "name": "Gmail TIT"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": {
+            "ok": true,
+            "message": "Lead received successfully"
+          },
+          "options": {
+            "responseCode": 200
+          }
+        },
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.5,
+        "position": [
+          624,
+          0
+        ],
+        "id": "a01cb9bf-7a48-4fc2-a6a3-fbc27a7c7b01",
+        "name": "Respond to Webhook"
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Send Whatsapp Mesage",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Whatsapp Mesage": {
+        "main": [
+          [
+            {
+              "node": "Send a message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send a message": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "John Tuca",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-04-02T15:01:29.168Z",
+        "id": 36,
+        "workflowId": "NXzQqlYe6UcvMz1E",
+        "versionId": "2a344cf2-1a7e-4dee-8683-890eca6ec9d5",
+        "event": "deactivated",
+        "userId": "178d9447-d016-47aa-bd6b-6035532a6e2a"
+      },
+      {
+        "createdAt": "2026-04-02T15:01:29.216Z",
+        "id": 37,
+        "workflowId": "NXzQqlYe6UcvMz1E",
+        "versionId": "2a344cf2-1a7e-4dee-8683-890eca6ec9d5",
+        "event": "activated",
+        "userId": "178d9447-d016-47aa-bd6b-6035532a6e2a"
+      },
+      {
+        "createdAt": "2026-04-02T15:01:41.874Z",
+        "id": 38,
+        "workflowId": "NXzQqlYe6UcvMz1E",
+        "versionId": "2a344cf2-1a7e-4dee-8683-890eca6ec9d5",
+        "event": "deactivated",
+        "userId": "178d9447-d016-47aa-bd6b-6035532a6e2a"
+      },
+      {
+        "createdAt": "2026-04-02T15:01:42.279Z",
+        "id": 39,
+        "workflowId": "NXzQqlYe6UcvMz1E",
+        "versionId": "2a344cf2-1a7e-4dee-8683-890eca6ec9d5",
+        "event": "activated",
+        "userId": "178d9447-d016-47aa-bd6b-6035532a6e2a"
+      }
+    ]
+  }
+}

@@ -1,0 +1,680 @@
+{
+  "updatedAt": "2026-01-31T21:21:09.251Z",
+  "createdAt": "2025-03-15T21:44:53.233Z",
+  "id": "YvQoLJdULyAxwoAh",
+  "name": "Google Lead Forms",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "from": "+12139960265",
+        "to": "+40729440127",
+        "message": "=Solicitare NOUA - ITP Google Lead\n\nClientul {{ $('Webhook').item.json.body.user_column_data[0].string_value }} a solicitat o programare la ITP. \n\nNumăr de contact: {{ $('Webhook').item.json.body.user_column_data[1].string_value }}\n\nVa rugam sa il contactati pentru confirmarea zilei.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        192,
+        -128
+      ],
+      "id": "a491208c-25ba-48c2-8b8e-8520aa6b79f3",
+      "name": "Twilio",
+      "credentials": {
+        "twilioApi": {
+          "id": "v2Ai6apGz8Dq2EgR",
+          "name": "Twilio admin@euroautoservice.ro"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "51975678-9710-4948-9dcc-093c30a0166a",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -336,
+        -128
+      ],
+      "id": "91511a82-1497-4185-8232-930117da4850",
+      "name": "Webhook",
+      "webhookId": "51975678-9710-4948-9dcc-093c30a0166a"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1lEFiMPvqPn_izlEEcY4yrBgYQyjp2CWMa_2VAAb7yEQ",
+          "mode": "list",
+          "cachedResultName": "Date Clienti ITP",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1lEFiMPvqPn_izlEEcY4yrBgYQyjp2CWMa_2VAAb7yEQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Foaie1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1lEFiMPvqPn_izlEEcY4yrBgYQyjp2CWMa_2VAAb7yEQ/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Phone": "={{ $('Webhook').item.json.body.user_column_data[1].string_value }}",
+            "First Name": "={{ $('Webhook').item.json.body.user_column_data[0].string_value }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "First Name",
+              "displayName": "First Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Name",
+              "displayName": "Last Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Country",
+              "displayName": "Country",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Zip",
+              "displayName": "Zip",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Address",
+              "displayName": "Address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Localitate",
+              "displayName": "Localitate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Brand of car",
+              "displayName": "Brand of car",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Type of car",
+              "displayName": "Type of car",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "License Plate",
+              "displayName": "License Plate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        960,
+        -128
+      ],
+      "id": "9ff408a0-1664-4791-9421-382e6b0af59a",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "AYHXYKikTWoGRb25",
+          "name": "Google Sheets TIT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "euro.auto.service.srl@gmail.com",
+        "subject": "Solicitare Programare ITP",
+        "message": "=Bună ziua,  <br>\n<br>\nUn client nou a solicitat o programare pentru ITP.  <br>\n<br>\nDetalii:<br>\n- Nume client: {{ $json.body.user_column_data[0].string_value }} <br>\n- Număr de telefon: {{ $json.body.user_column_data[1].string_value }}<br>\n- Data dorita a programarii nu a putut fi transmisa.<br>\n<br>\n- Data solicitarii: {{ $json.body.lead_submit_time }} <br>\nVă rugăm să contactați telefonic clientul pentru confirmarea programării. <br>\nInformatii despre formular: <br>\nGCLID: {{ $json.body.gcl_id }} <br>\nIP: {{ $json.headers[\"x-real-ip\"] }} <br>\nUser_agent: {{ $json.headers[\"user-agent\"] }} <br>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -80,
+        -128
+      ],
+      "id": "05e4a9f8-4f62-4358-9ca0-5172dbe536f9",
+      "name": "Send a message",
+      "webhookId": "9a6ff765-86cb-4d66-a2a1-78a46bbcc43b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "dMQpXLDUfdoh29cv",
+          "name": "Gmail TIT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "617386788122730",
+        "recipientPhoneNumber": "40729440127",
+        "textBody": "=Solicitare NOUA - ITP Google Lead\n\nClientul {{ $('Webhook').item.json.body.user_column_data[0].column_name }} a solicitat o programare la ITP. \n\nNumăr de contact: {{ $('Webhook').item.json.body.user_column_data[1].string_value }}\n\nVa rugam sa il contactati pentru confirmarea zilei.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        544,
+        -128
+      ],
+      "id": "2c08c34c-d1b2-480b-a1a3-e9f801a6caba",
+      "name": "Send message",
+      "webhookId": "f3de1caa-1958-40da-9da9-bb89d71f3a87",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "v47fHNf89WRHaews",
+          "name": "UitdeITP - WhatsAPP"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Twilio": {
+      "main": [
+        [
+          {
+            "node": "Send message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Twilio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n.uitdeitp.ro",
+            "user-agent": "Google-Ads-Notifications",
+            "content-length": "774",
+            "accept-encoding": "gzip, deflate, br",
+            "content-type": "application/json",
+            "from": "Google-Ads-Notifications(at)GoogleAdsNotifications.com",
+            "x-forwarded-for": "74.125.213.40",
+            "x-forwarded-host": "n8n.uitdeitp.ro",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "9730a0c8504b",
+            "x-real-ip": "74.125.213.40"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "lead_id": "012de882c9893e38068c1583f5302999c4251544f46bdcb097721a8b82e3afe732f5411042c93de167366b8f01386c9e3d208307354a84e0a27ce3f5643063e49336a148fa8c55b51b874ce770e526ea34b6c83f459ac803db4924da50c8d4827c58155cfef670ef959d9b1081522d1eff",
+            "user_column_data": [
+              {
+                "column_name": "Full Name",
+                "string_value": "Maryus Ștefănescu",
+                "column_id": "FULL_NAME"
+              },
+              {
+                "column_name": "User Phone",
+                "string_value": "+40766848012",
+                "column_id": "PHONE_NUMBER"
+              }
+            ],
+            "api_version": "1.0",
+            "form_id": 213976576605,
+            "campaign_id": 21396294229,
+            "google_key": "gOOGEL_N8N",
+            "is_test": false,
+            "gcl_id": "Cj0KCQiAgP_JBhD-ARIsANpEMxzlJtSCc8mM8nDwstqHW-qc6uWeilRQvrg-NQ2a9IF0lTvGoUFR7GQaAqkUEALw_wcB",
+            "adgroup_id": 183990001147,
+            "creative_id": 758065970853,
+            "lead_stage": "Raw lead",
+            "lead_submit_time": "2025-12-15T08:38:25.728Z"
+          },
+          "webhookUrl": "https://n8n.uitdeitp.ro/webhook/51975678-9710-4948-9dcc-093c30a0166a",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "versionId": "2a2d4a3f-bb8f-4a1c-814b-73b364601ee3",
+  "activeVersionId": "2a2d4a3f-bb8f-4a1c-814b-73b364601ee3",
+  "versionCounter": 29,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2025-03-15T21:44:53.233Z",
+      "createdAt": "2025-03-15T21:44:53.233Z",
+      "role": "workflow:owner",
+      "workflowId": "YvQoLJdULyAxwoAh",
+      "projectId": "5auLaqSVFLpuR32L",
+      "project": {
+        "updatedAt": "2025-03-02T21:26:04.225Z",
+        "createdAt": "2025-03-02T21:06:20.500Z",
+        "id": "5auLaqSVFLpuR32L",
+        "name": "John Tuca <tuca.ioan.teodor@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "178d9447-d016-47aa-bd6b-6035532a6e2a"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2025-12-15T10:19:45.368Z",
+    "createdAt": "2025-12-15T10:19:45.368Z",
+    "versionId": "2a2d4a3f-bb8f-4a1c-814b-73b364601ee3",
+    "workflowId": "YvQoLJdULyAxwoAh",
+    "nodes": [
+      {
+        "parameters": {
+          "from": "+12139960265",
+          "to": "+40729440127",
+          "message": "=Solicitare NOUA - ITP Google Lead\n\nClientul {{ $('Webhook').item.json.body.user_column_data[0].string_value }} a solicitat o programare la ITP. \n\nNumăr de contact: {{ $('Webhook').item.json.body.user_column_data[1].string_value }}\n\nVa rugam sa il contactati pentru confirmarea zilei.",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.twilio",
+        "typeVersion": 1,
+        "position": [
+          192,
+          -128
+        ],
+        "id": "a491208c-25ba-48c2-8b8e-8520aa6b79f3",
+        "name": "Twilio",
+        "credentials": {
+          "twilioApi": {
+            "id": "v2Ai6apGz8Dq2EgR",
+            "name": "Twilio admin@euroautoservice.ro"
+          }
+        },
+        "disabled": true
+      },
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "51975678-9710-4948-9dcc-093c30a0166a",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          -336,
+          -128
+        ],
+        "id": "91511a82-1497-4185-8232-930117da4850",
+        "name": "Webhook",
+        "webhookId": "51975678-9710-4948-9dcc-093c30a0166a"
+      },
+      {
+        "parameters": {
+          "operation": "append",
+          "documentId": {
+            "__rl": true,
+            "value": "1lEFiMPvqPn_izlEEcY4yrBgYQyjp2CWMa_2VAAb7yEQ",
+            "mode": "list",
+            "cachedResultName": "Date Clienti ITP",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1lEFiMPvqPn_izlEEcY4yrBgYQyjp2CWMa_2VAAb7yEQ/edit?usp=drivesdk"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "gid=0",
+            "mode": "list",
+            "cachedResultName": "Foaie1",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1lEFiMPvqPn_izlEEcY4yrBgYQyjp2CWMa_2VAAb7yEQ/edit#gid=0"
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "Phone": "={{ $('Webhook').item.json.body.user_column_data[1].string_value }}",
+              "First Name": "={{ $('Webhook').item.json.body.user_column_data[0].string_value }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "Phone",
+                "displayName": "Phone",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "First Name",
+                "displayName": "First Name",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Last Name",
+                "displayName": "Last Name",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Email",
+                "displayName": "Email",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Country",
+                "displayName": "Country",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Zip",
+                "displayName": "Zip",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Address",
+                "displayName": "Address",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Localitate",
+                "displayName": "Localitate",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Brand of car",
+                "displayName": "Brand of car",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Type of car",
+                "displayName": "Type of car",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "License Plate",
+                "displayName": "License Plate",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          960,
+          -128
+        ],
+        "id": "9ff408a0-1664-4791-9421-382e6b0af59a",
+        "name": "Google Sheets",
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "AYHXYKikTWoGRb25",
+            "name": "Google Sheets TIT"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "sendTo": "euro.auto.service.srl@gmail.com",
+          "subject": "Solicitare Programare ITP",
+          "message": "=Bună ziua,  <br>\n<br>\nUn client nou a solicitat o programare pentru ITP.  <br>\n<br>\nDetalii:<br>\n- Nume client: {{ $json.body.user_column_data[0].string_value }} <br>\n- Număr de telefon: {{ $json.body.user_column_data[1].string_value }}<br>\n- Data dorita a programarii nu a putut fi transmisa.<br>\n<br>\n- Data solicitarii: {{ $json.body.lead_submit_time }} <br>\nVă rugăm să contactați telefonic clientul pentru confirmarea programării. <br>\nInformatii despre formular: <br>\nGCLID: {{ $json.body.gcl_id }} <br>\nIP: {{ $json.headers[\"x-real-ip\"] }} <br>\nUser_agent: {{ $json.headers[\"user-agent\"] }} <br>",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.gmail",
+        "typeVersion": 2.1,
+        "position": [
+          -80,
+          -128
+        ],
+        "id": "05e4a9f8-4f62-4358-9ca0-5172dbe536f9",
+        "name": "Send a message",
+        "webhookId": "9a6ff765-86cb-4d66-a2a1-78a46bbcc43b",
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "dMQpXLDUfdoh29cv",
+            "name": "Gmail TIT"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "operation": "send",
+          "phoneNumberId": "617386788122730",
+          "recipientPhoneNumber": "40729440127",
+          "textBody": "=Solicitare NOUA - ITP Google Lead\n\nClientul {{ $('Webhook').item.json.body.user_column_data[0].column_name }} a solicitat o programare la ITP. \n\nNumăr de contact: {{ $('Webhook').item.json.body.user_column_data[1].string_value }}\n\nVa rugam sa il contactati pentru confirmarea zilei.",
+          "additionalFields": {}
+        },
+        "type": "n8n-nodes-base.whatsApp",
+        "typeVersion": 1,
+        "position": [
+          544,
+          -128
+        ],
+        "id": "2c08c34c-d1b2-480b-a1a3-e9f801a6caba",
+        "name": "Send message",
+        "webhookId": "f3de1caa-1958-40da-9da9-bb89d71f3a87",
+        "credentials": {
+          "whatsAppApi": {
+            "id": "v47fHNf89WRHaews",
+            "name": "UitdeITP - WhatsAPP"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Twilio": {
+        "main": [
+          [
+            {
+              "node": "Send message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Send a message",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send a message": {
+        "main": [
+          [
+            {
+              "node": "Twilio",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send message": {
+        "main": [
+          [
+            {
+              "node": "Google Sheets",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "John Tuca",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2025-12-15T10:19:45.483Z",
+        "id": 11,
+        "workflowId": "YvQoLJdULyAxwoAh",
+        "versionId": "2a2d4a3f-bb8f-4a1c-814b-73b364601ee3",
+        "event": "activated",
+        "userId": "178d9447-d016-47aa-bd6b-6035532a6e2a"
+      },
+      {
+        "createdAt": "2026-01-31T21:21:09.326Z",
+        "id": 16,
+        "workflowId": "YvQoLJdULyAxwoAh",
+        "versionId": "2a2d4a3f-bb8f-4a1c-814b-73b364601ee3",
+        "event": "activated",
+        "userId": "178d9447-d016-47aa-bd6b-6035532a6e2a"
+      }
+    ]
+  }
+}

@@ -1,0 +1,708 @@
+{
+  "updatedAt": "2026-03-27T09:30:19.735Z",
+  "createdAt": "2025-03-15T12:52:37.621Z",
+  "id": "rf5hRUxNvEPZLtjr",
+  "name": "Programare ITP ShortForm",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "sendTo": "euro.auto.service.srl@gmail.com",
+        "subject": "Solicitare Programare ITP",
+        "message": "=Bună ziua,  <br>\n<br>\nUn client nou a solicitat o programare pentru ITP.  <br>\n<br>\nDetalii:<br>\n- Nume client:  {{ $json.nume_complet }}<br>\n- Număr de telefon: {{ $json.telefon }}<br>\n- Data dorită pentru programare:  {{ $json.data_programarii_itp }}<br>\n<br>\nVă rugăm să contactați telefonic clientul pentru confirmarea programării. <br>\nInformatii despre formular: <br>\nGCLID: {{ $json.gclid }} <br>\nIP: {{ $json.ip }} <br>\nUser_agent: {{ $json.user_agent }} <br>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        560,
+        0
+      ],
+      "id": "1bd75341-a565-4331-90ed-6942dd174196",
+      "name": "Gmail",
+      "webhookId": "9a6ff765-86cb-4d66-a2a1-78a46bbcc43b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "dMQpXLDUfdoh29cv",
+          "name": "Gmail TIT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Funcție pentru formatarea telefonului în format internațional\nfunction formatPhoneNumberToInternational(phoneNumber) {\n  if (!phoneNumber) return '';\n  \n  const cleaned = phoneNumber.replace(/\\s+/g, '').replace(/[^\\d+]/g, '');\n  \n  if (cleaned.startsWith('+')) {\n    return cleaned;\n  }\n  \n  if (cleaned.startsWith('0')) {\n    return '+40' + cleaned.substring(1);\n  }\n  \n  return '+40' + cleaned;\n}\n\n// Funcție pentru formatarea datei în formatul specificat (fără probleme de timezone)\nfunction formatDateInRomanian(dateString) {\n  if (!dateString) return '';\n  \n  try {\n    const parts = dateString.split('-');\n    if (parts.length === 3) {\n      const day = parseInt(parts[2], 10);\n      const monthIndex = parseInt(parts[1], 10) - 1;\n      const year = parseInt(parts[0], 10);\n      \n      const romanianMonths = [\n        'Ianuarie', 'Februarie', 'Martie', 'Aprilie', 'Mai', 'Iunie',\n        'Iulie', 'August', 'Septembrie', 'Octombrie', 'Noiembrie', 'Decembrie'\n      ];\n      \n      if (monthIndex < 0 || monthIndex > 11) return '';\n      \n      return `${day} ${romanianMonths[monthIndex]} ${year}`;\n    }\n    return '';\n  } catch (error) {\n    return '';\n  }\n}\n\n// Extrage valoare din user_column_data pe baza column_id (pentru Google Ads Lead Forms)\nfunction getUserColumnValue(userColumnData, columnId) {\n  if (!userColumnData || !Array.isArray(userColumnData)) return '';\n  \n  const column = userColumnData.find(col => col.column_id === columnId);\n  return column ? column.string_value : '';\n}\n\n// Detectează structura datelor de intrare\nfunction detectDataStructure(item) {\n  if (item.body && item.headers) {\n    return { body: item.body, headers: item.headers };\n  }\n  \n  if (item.json && item.json.body && item.json.headers) {\n    return { body: item.json.body, headers: item.json.headers };\n  }\n  \n  if (item.item && item.item.body && item.item.headers) {\n    return { body: item.item.body, headers: item.item.headers };\n  }\n  \n  if (item.data && item.data.body && item.data.headers) {\n    return { body: item.data.body, headers: item.data.headers };\n  }\n  \n  return { body: {}, headers: {} };\n}\n\n// Procesează datele indiferent de structura lor\nfunction processItems(items) {\n  if (!items || !Array.isArray(items)) {\n    if (typeof items === 'object') {\n      items = [items];\n    } else {\n      return [];\n    }\n  }\n  \n  const results = [];\n  \n  for (const item of items) {\n    if (!item) continue;\n    \n    const { body, headers } = detectDataStructure(item);\n    \n    // Extrage din user_column_data (Google Ads Lead Forms)\n    const nume_din_google = getUserColumnValue(body.user_column_data, 'FULL_NAME');\n    const telefon_din_google = getUserColumnValue(body.user_column_data, 'PHONE_NUMBER');\n    \n    const result = {\n      nume_complet: nume_din_google || body.nume || body.name || '',\n      telefon: formatPhoneNumberToInternational(telefon_din_google || body.telefon || body.phone || ''),\n      data_programarii_itp: formatDateInRomanian(body.data || body.date || ''),\n      gclid: body.gcl_id || body.gclid || '',\n      timestamp: body.lead_submit_time || body.timestamp || '',\n      ip: headers['x-real-ip'] || headers['x-forwarded-for'] || '',\n      user_agent: headers['user-agent'] || ''\n    };\n    \n    results.push(result);\n  }\n  \n  return results;\n}\n\nreturn processItems(items);"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "fc8b06d1-6b7e-485e-8a39-19ed4defe7c8",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "from": "+12139960265",
+        "to": "+40729440127",
+        "message": "=Clientul {{ $('Code').item.json.nume_complet }} a solicitat o programare la ITP pentru data {{ $('Code').item.json.data_programarii_itp }}. \n\nNumăr de contact: {{ $('Code').item.json.telefon }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        864,
+        0
+      ],
+      "id": "ba8aaca0-5581-4199-9d46-9a47babd44cc",
+      "name": "Twilio",
+      "credentials": {
+        "twilioApi": {
+          "id": "v2Ai6apGz8Dq2EgR",
+          "name": "Twilio admin@euroautoservice.ro"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "51975678-9710-4948-9dcc-093c30a0166a",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ec0011df-1e5b-4723-8ca6-3d7f12cdaa76",
+      "name": "Webhook",
+      "webhookId": "51975678-9710-4948-9dcc-093c30a0166a"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1lEFiMPvqPn_izlEEcY4yrBgYQyjp2CWMa_2VAAb7yEQ",
+          "mode": "list",
+          "cachedResultName": "Date Clienti ITP",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1lEFiMPvqPn_izlEEcY4yrBgYQyjp2CWMa_2VAAb7yEQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Foaie1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1lEFiMPvqPn_izlEEcY4yrBgYQyjp2CWMa_2VAAb7yEQ/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Phone": "=={{ $('Code').item.json.telefon }}",
+            "First Name": "={{ $('Code').item.json.nume_complet }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "First Name",
+              "displayName": "First Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last Name",
+              "displayName": "Last Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Country",
+              "displayName": "Country",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Zip",
+              "displayName": "Zip",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Address",
+              "displayName": "Address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Localitate",
+              "displayName": "Localitate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Brand of car",
+              "displayName": "Brand of car",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Type of car",
+              "displayName": "Type of car",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "License Plate",
+              "displayName": "License Plate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1312,
+        0
+      ],
+      "id": "5b342b18-f6cc-44d8-9eae-664b0c2fa7f8",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "AYHXYKikTWoGRb25",
+          "name": "Google Sheets TIT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "617386788122730",
+        "recipientPhoneNumber": "+40729440127",
+        "textBody": "=Clientul {{ $('Code').item.json.nume_complet }} a solicitat o programare la ITP pentru data {{ $('Code').item.json.data_programarii_itp }}. \n\nNumăr de contact: {{ $('Code').item.json.telefon }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        0
+      ],
+      "id": "5947db50-fa20-4f5b-b650-9ebc650a7f49",
+      "name": "WhatsApp Business Cloud",
+      "webhookId": "c76c5553-1c20-42f8-ba63-73c27259816f",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "v47fHNf89WRHaews",
+          "name": "UitdeITP - WhatsAPP"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail": {
+      "main": [
+        [
+          {
+            "node": "Twilio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Twilio": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Business Cloud",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Business Cloud": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n.uitdeitp.ro",
+            "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 26_2_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/146.0.7680.151 Mobile/15E148 Safari/604.1",
+            "content-length": "171",
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate, br",
+            "accept-language": "en-GB,en;q=0.9",
+            "content-type": "application/json",
+            "origin": "https://itp.euroautoservice.ro",
+            "priority": "u=3, i",
+            "referer": "https://itp.euroautoservice.ro/",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "5.14.199.148",
+            "x-forwarded-host": "n8n.uitdeitp.ro",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "c5c9b080ce83",
+            "x-real-ip": "5.14.199.148"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "name": "Adochitei Simona",
+            "phone": "0764355385",
+            "date": "2026-03-28",
+            "gclid": "Cj0KCQjw1ZjOBhCmARIsADDuFTAJQoEBr518TxV4AMARKRf__QyaV_UhqYI8Gu8Jy6e8DjhAakOTSoYaAt62EALw_wcB"
+          },
+          "webhookUrl": "https://n8n.uitdeitp.ro/webhook/51975678-9710-4948-9dcc-093c30a0166a",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "versionId": "f95e8183-70f8-408f-b07a-5b9b970965c9",
+  "activeVersionId": "f95e8183-70f8-408f-b07a-5b9b970965c9",
+  "versionCounter": 28,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2025-03-15T12:52:37.621Z",
+      "createdAt": "2025-03-15T12:52:37.621Z",
+      "role": "workflow:owner",
+      "workflowId": "rf5hRUxNvEPZLtjr",
+      "projectId": "5auLaqSVFLpuR32L",
+      "project": {
+        "updatedAt": "2025-03-02T21:26:04.225Z",
+        "createdAt": "2025-03-02T21:06:20.500Z",
+        "id": "5auLaqSVFLpuR32L",
+        "name": "John Tuca <tuca.ioan.teodor@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "178d9447-d016-47aa-bd6b-6035532a6e2a"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-03-27T09:30:28.316Z",
+    "createdAt": "2026-03-27T09:30:19.739Z",
+    "versionId": "f95e8183-70f8-408f-b07a-5b9b970965c9",
+    "workflowId": "rf5hRUxNvEPZLtjr",
+    "nodes": [
+      {
+        "parameters": {
+          "sendTo": "euro.auto.service.srl@gmail.com",
+          "subject": "Solicitare Programare ITP",
+          "message": "=Bună ziua,  <br>\n<br>\nUn client nou a solicitat o programare pentru ITP.  <br>\n<br>\nDetalii:<br>\n- Nume client:  {{ $json.nume_complet }}<br>\n- Număr de telefon: {{ $json.telefon }}<br>\n- Data dorită pentru programare:  {{ $json.data_programarii_itp }}<br>\n<br>\nVă rugăm să contactați telefonic clientul pentru confirmarea programării. <br>\nInformatii despre formular: <br>\nGCLID: {{ $json.gclid }} <br>\nIP: {{ $json.ip }} <br>\nUser_agent: {{ $json.user_agent }} <br>",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.gmail",
+        "typeVersion": 2.1,
+        "position": [
+          560,
+          0
+        ],
+        "id": "1bd75341-a565-4331-90ed-6942dd174196",
+        "name": "Gmail",
+        "webhookId": "9a6ff765-86cb-4d66-a2a1-78a46bbcc43b",
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "dMQpXLDUfdoh29cv",
+            "name": "Gmail TIT"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "// Funcție pentru formatarea telefonului în format internațional\nfunction formatPhoneNumberToInternational(phoneNumber) {\n  if (!phoneNumber) return '';\n  \n  const cleaned = phoneNumber.replace(/\\s+/g, '').replace(/[^\\d+]/g, '');\n  \n  if (cleaned.startsWith('+')) {\n    return cleaned;\n  }\n  \n  if (cleaned.startsWith('0')) {\n    return '+40' + cleaned.substring(1);\n  }\n  \n  return '+40' + cleaned;\n}\n\n// Funcție pentru formatarea datei în formatul specificat (fără probleme de timezone)\nfunction formatDateInRomanian(dateString) {\n  if (!dateString) return '';\n  \n  try {\n    const parts = dateString.split('-');\n    if (parts.length === 3) {\n      const day = parseInt(parts[2], 10);\n      const monthIndex = parseInt(parts[1], 10) - 1;\n      const year = parseInt(parts[0], 10);\n      \n      const romanianMonths = [\n        'Ianuarie', 'Februarie', 'Martie', 'Aprilie', 'Mai', 'Iunie',\n        'Iulie', 'August', 'Septembrie', 'Octombrie', 'Noiembrie', 'Decembrie'\n      ];\n      \n      if (monthIndex < 0 || monthIndex > 11) return '';\n      \n      return `${day} ${romanianMonths[monthIndex]} ${year}`;\n    }\n    return '';\n  } catch (error) {\n    return '';\n  }\n}\n\n// Extrage valoare din user_column_data pe baza column_id (pentru Google Ads Lead Forms)\nfunction getUserColumnValue(userColumnData, columnId) {\n  if (!userColumnData || !Array.isArray(userColumnData)) return '';\n  \n  const column = userColumnData.find(col => col.column_id === columnId);\n  return column ? column.string_value : '';\n}\n\n// Detectează structura datelor de intrare\nfunction detectDataStructure(item) {\n  if (item.body && item.headers) {\n    return { body: item.body, headers: item.headers };\n  }\n  \n  if (item.json && item.json.body && item.json.headers) {\n    return { body: item.json.body, headers: item.json.headers };\n  }\n  \n  if (item.item && item.item.body && item.item.headers) {\n    return { body: item.item.body, headers: item.item.headers };\n  }\n  \n  if (item.data && item.data.body && item.data.headers) {\n    return { body: item.data.body, headers: item.data.headers };\n  }\n  \n  return { body: {}, headers: {} };\n}\n\n// Procesează datele indiferent de structura lor\nfunction processItems(items) {\n  if (!items || !Array.isArray(items)) {\n    if (typeof items === 'object') {\n      items = [items];\n    } else {\n      return [];\n    }\n  }\n  \n  const results = [];\n  \n  for (const item of items) {\n    if (!item) continue;\n    \n    const { body, headers } = detectDataStructure(item);\n    \n    // Extrage din user_column_data (Google Ads Lead Forms)\n    const nume_din_google = getUserColumnValue(body.user_column_data, 'FULL_NAME');\n    const telefon_din_google = getUserColumnValue(body.user_column_data, 'PHONE_NUMBER');\n    \n    const result = {\n      nume_complet: nume_din_google || body.nume || body.name || '',\n      telefon: formatPhoneNumberToInternational(telefon_din_google || body.telefon || body.phone || ''),\n      data_programarii_itp: formatDateInRomanian(body.data || body.date || ''),\n      gclid: body.gcl_id || body.gclid || '',\n      timestamp: body.lead_submit_time || body.timestamp || '',\n      ip: headers['x-real-ip'] || headers['x-forwarded-for'] || '',\n      user_agent: headers['user-agent'] || ''\n    };\n    \n    results.push(result);\n  }\n  \n  return results;\n}\n\nreturn processItems(items);"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          224,
+          0
+        ],
+        "id": "fc8b06d1-6b7e-485e-8a39-19ed4defe7c8",
+        "name": "Code"
+      },
+      {
+        "parameters": {
+          "from": "+12139960265",
+          "to": "+40729440127",
+          "message": "=Clientul {{ $('Code').item.json.nume_complet }} a solicitat o programare la ITP pentru data {{ $('Code').item.json.data_programarii_itp }}. \n\nNumăr de contact: {{ $('Code').item.json.telefon }}",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.twilio",
+        "typeVersion": 1,
+        "position": [
+          864,
+          0
+        ],
+        "id": "ba8aaca0-5581-4199-9d46-9a47babd44cc",
+        "name": "Twilio",
+        "credentials": {
+          "twilioApi": {
+            "id": "v2Ai6apGz8Dq2EgR",
+            "name": "Twilio admin@euroautoservice.ro"
+          }
+        },
+        "disabled": true
+      },
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "51975678-9710-4948-9dcc-093c30a0166a",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          0,
+          0
+        ],
+        "id": "ec0011df-1e5b-4723-8ca6-3d7f12cdaa76",
+        "name": "Webhook",
+        "webhookId": "51975678-9710-4948-9dcc-093c30a0166a"
+      },
+      {
+        "parameters": {
+          "operation": "append",
+          "documentId": {
+            "__rl": true,
+            "value": "1lEFiMPvqPn_izlEEcY4yrBgYQyjp2CWMa_2VAAb7yEQ",
+            "mode": "list",
+            "cachedResultName": "Date Clienti ITP",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1lEFiMPvqPn_izlEEcY4yrBgYQyjp2CWMa_2VAAb7yEQ/edit?usp=drivesdk"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "gid=0",
+            "mode": "list",
+            "cachedResultName": "Foaie1",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1lEFiMPvqPn_izlEEcY4yrBgYQyjp2CWMa_2VAAb7yEQ/edit#gid=0"
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "Phone": "=={{ $('Code').item.json.telefon }}",
+              "First Name": "={{ $('Code').item.json.nume_complet }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "Phone",
+                "displayName": "Phone",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "First Name",
+                "displayName": "First Name",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Last Name",
+                "displayName": "Last Name",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Email",
+                "displayName": "Email",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Country",
+                "displayName": "Country",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Zip",
+                "displayName": "Zip",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Address",
+                "displayName": "Address",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Localitate",
+                "displayName": "Localitate",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Brand of car",
+                "displayName": "Brand of car",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "Type of car",
+                "displayName": "Type of car",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "License Plate",
+                "displayName": "License Plate",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.5,
+        "position": [
+          1312,
+          0
+        ],
+        "id": "5b342b18-f6cc-44d8-9eae-664b0c2fa7f8",
+        "name": "Google Sheets",
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "AYHXYKikTWoGRb25",
+            "name": "Google Sheets TIT"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "operation": "send",
+          "phoneNumberId": "617386788122730",
+          "recipientPhoneNumber": "+40729440127",
+          "textBody": "=Clientul {{ $('Code').item.json.nume_complet }} a solicitat o programare la ITP pentru data {{ $('Code').item.json.data_programarii_itp }}. \n\nNumăr de contact: {{ $('Code').item.json.telefon }}",
+          "additionalFields": {}
+        },
+        "type": "n8n-nodes-base.whatsApp",
+        "typeVersion": 1,
+        "position": [
+          1088,
+          0
+        ],
+        "id": "5947db50-fa20-4f5b-b650-9ebc650a7f49",
+        "name": "WhatsApp Business Cloud",
+        "webhookId": "c76c5553-1c20-42f8-ba63-73c27259816f",
+        "credentials": {
+          "whatsAppApi": {
+            "id": "v47fHNf89WRHaews",
+            "name": "UitdeITP - WhatsAPP"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Code": {
+        "main": [
+          [
+            {
+              "node": "Gmail",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Gmail": {
+        "main": [
+          [
+            {
+              "node": "Twilio",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Code",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Twilio": {
+        "main": [
+          [
+            {
+              "node": "WhatsApp Business Cloud",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "WhatsApp Business Cloud": {
+        "main": [
+          [
+            {
+              "node": "Google Sheets",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "John Tuca",
+    "name": "Version f95e8183",
+    "description": "",
+    "autosaved": true,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-03-27T09:30:28.311Z",
+        "id": 29,
+        "workflowId": "rf5hRUxNvEPZLtjr",
+        "versionId": "f95e8183-70f8-408f-b07a-5b9b970965c9",
+        "event": "activated",
+        "userId": "178d9447-d016-47aa-bd6b-6035532a6e2a"
+      }
+    ]
+  }
+}
