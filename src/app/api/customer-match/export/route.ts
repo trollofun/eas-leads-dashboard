@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
 
 function normalizePhoneE164(raw: string): string | null {
   const digits = raw.replace(/\D/g, '');
-  if (digits.length === 10 && digits.startsWith('0')) return '+4' + digits.slice(1);
+  if (digits.length === 10 && digits.startsWith('0')) return '+40' + digits.slice(1);
   if (digits.length === 12 && digits.startsWith('40')) return '+' + digits;
   if (raw.startsWith('+')) return raw.replace(/\s/g, '');
   return null;
