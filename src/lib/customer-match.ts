@@ -29,19 +29,23 @@ export async function syncCustomerMatch(members: CustomerMatchMember[]): Promise
   for (let i = 0; i < members.length; i += BATCH_SIZE) {
     const batch = members.slice(i, i + BATCH_SIZE);
 
+    // Docs: POST /v1/audienceMembers:ingest — body uses audienceMembers > compositeData > userData
     const requestBody = {
       destinations: [{
         operatingAccount: { accountType: 'GOOGLE_ADS', accountId: operatingAccountId },
         loginAccount: { accountType: 'GOOGLE_ADS', accountId: loginAccountId },
         productDestinationId: settingsRaw.listId,
       }],
-      members: batch.map(m => {
-        const identifiers: any[] = [];
-        if (m.hashedPhoneNumber) identifiers.push({ hashedPhoneNumber: m.hashedPhoneNumber });
-        if (m.hashedEmailAddress) identifiers.push({ hashedEmailAddress: m.hashedEmailAddress });
-        return { identifiers, consent: { adUserData: 'CONSENT_GRANTED' } };
+      audienceMembers: batch.map(m => {
+        const userIdentifiers: any[] = [];
+        if (m.hashedPhoneNumber) userIdentifiers.push({ phoneNumber: m.hashedPhoneNumber });
+        if (m.hashedEmailAddress) userIdentifiers.push({ emailAddress: m.hashedEmailAddress });
+        return { compositeData: { userData: { userIdentifiers } } };
       }),
+      consent: { adUserData: 'CONSENT_GRANTED', adPersonalization: 'CONSENT_GRANTED' },
       encoding: 'HEX',
+      termsOfService: { customerMatchTermsOfServiceStatus: 'ACCEPTED' },
+      validateOnly: settingsRaw.validateOnly === true,
     };
 
     try {
@@ -50,7 +54,7 @@ export async function syncCustomerMatch(members: CustomerMatchMember[]): Promise
       const client = await auth.getClient();
       const accessToken = await client.getAccessToken();
 
-      const res = await fetch(`${DATA_MANAGER_BASE}/accounts/-:ingestAudienceMembers`, {
+      const res = await fetch(`${DATA_MANAGER_BASE}/audienceMembers:ingest`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

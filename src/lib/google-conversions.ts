@@ -84,7 +84,7 @@ export async function uploadGoogleAdsOfflineConversion(input: ConversionInput): 
   const client = await auth.getClient();
   const accessToken = await client.getAccessToken();
 
-  const response = await fetch(`${DATA_MANAGER_API_BASE}/accounts/-:ingestEvents`, {
+  const response = await fetch(`${DATA_MANAGER_API_BASE}/events:ingest`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
