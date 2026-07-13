@@ -114,7 +114,13 @@ export async function POST(request: NextRequest) {
         car_make: payload.vehicle?.make,
         car_model: payload.vehicle?.model,
         car_year: payload.vehicle?.year,
-        registration_number: payload.vehicle?.registration_number,
+        registration_number:
+          payload.vehicle?.registration_number ||
+          payload.registration_number ||
+          payload.numar_inmatriculare ||
+          payload.raw_metadata?.original_body?.numar_inmatriculare ||
+          payload.raw_metadata?.original_body?.registration_number ||
+          payload.raw_metadata?.original_body?.nr_inmatriculare,
         message: payload.message,
         ad_click_id: adClickId,
         fake_score: fakeResult.score,
@@ -149,6 +155,7 @@ export async function POST(request: NextRequest) {
         leadId: lead.id,
         name: lead.name,
         phone: lead.phone,
+        registrationNumber: lead.registration_number,
         serviceType: lead.service_type,
         source: lead.source,
         message: lead.message,

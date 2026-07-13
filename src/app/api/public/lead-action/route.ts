@@ -3,6 +3,15 @@ import { prisma } from '@/lib/db';
 import { verifyLeadAction } from '@/lib/hmac';
 import { enqueueConversionForLead } from '@/lib/enqueue-conversion';
 
+function confirmationHtml(input: {
+  title: string;
+  status: string;
+  leadId?: string;
+  dashboardUrl?: string;
+}) {
+  return `<!doctype html><html lang="ro"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${input.title}</title></head><body style="margin:0;background:#f6f7fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#111827"><main style="min-height:100vh;display:grid;place-items:center;padding:24px"><section style="width:min(420px,100%);background:#fff;border-radius:16px;padding:28px;box-shadow:0 10px 30px rgba(15,23,42,.12);text-align:center"><div style="font-size:44px;margin-bottom:8px">✅</div><h1 style="font-size:24px;margin:0 0 8px">${input.title}</h1><p style="margin:0 0 20px;color:#4b5563">Status nou: <strong>${input.status}</strong></p><p style="margin:0 0 18px;color:#6b7280">Poți închide pagina.</p>${input.dashboardUrl ? `<a href="${input.dashboardUrl}" style="display:inline-block;color:#6b7280;font-size:13px;text-decoration:none">Deschide dashboard</a>` : ''}</section></main></body></html>`;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const token = request.nextUrl.searchParams.get('token');
@@ -57,10 +66,16 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Redirect to dashboard lead detail
-    return NextResponse.redirect(
-      `${process.env.APP_URL}/leads/${leadId}`
-    );
+    const title = action === 'fake' ? 'Marcat ca spam' : action === 'book' ? 'Marcat ca programat' : action === 'complete' ? 'Marcat ca finalizat' : 'Status actualizat';
+    return new NextResponse(confirmationHtml({
+      title,
+      status: mapping.status,
+      leadId,
+      dashboardUrl: `${process.env.APP_URL}/leads/${leadId}`,
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    });
   } catch (error: any) {
     console.error('Lead action error:', error);
     return NextResponse.json(

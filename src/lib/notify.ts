@@ -5,6 +5,7 @@ interface NotificationInput {
   leadId: string;
   name: string | null;
   phone: string | null;
+  registrationNumber?: string | null;
   serviceType: string;
   source: string;
   message: string | null;
@@ -27,7 +28,7 @@ export async function sendReceptionEmail(lead: NotificationInput) {
 
   const now = Date.now();
   const tokenFake = signLeadAction({ leadId: lead.leadId, action: 'fake', expiresAt: now + 7 * 24 * 60 * 60 * 1000 });
-  const tokenAccept = signLeadAction({ leadId: lead.leadId, action: 'accept', expiresAt: now + 7 * 24 * 60 * 60 * 1000 });
+  const tokenBooked = signLeadAction({ leadId: lead.leadId, action: 'book', expiresAt: now + 7 * 24 * 60 * 60 * 1000 });
   const tokenComplete = signLeadAction({ leadId: lead.leadId, action: 'complete', expiresAt: now + 7 * 24 * 60 * 60 * 1000 });
 
   const subject = `[EAS] Lead nou: ${lead.name || 'Necunoscut'} — ${lead.serviceType} (${lead.source})`;
@@ -48,6 +49,7 @@ export async function sendReceptionEmail(lead: NotificationInput) {
   <div style="padding:20px 24px">
     <table style="border-collapse:collapse;width:100%;font-size:14px">
       <tr><td style="padding:6px 0;color:#666;width:100px">Telefon</td><td style="padding:6px 0;font-weight:500">${lead.phone || '—'}</td></tr>
+      <tr><td style="padding:6px 0;color:#666">Nr. auto</td><td style="padding:6px 0;font-weight:700;letter-spacing:.5px">${lead.registrationNumber || '—'}</td></tr>
       <tr><td style="padding:6px 0;color:#666">Serviciu</td><td style="padding:6px 0;font-weight:500">${lead.serviceType}</td></tr>
       <tr><td style="padding:6px 0;color:#666">Sursă</td><td style="padding:6px 0;font-weight:500">${lead.source}</td></tr>
       ${lead.message ? `<tr><td style="padding:6px 0;color:#666">Mesaj</td><td style="padding:6px 0">${lead.message}</td></tr>` : ''}
@@ -64,10 +66,10 @@ export async function sendReceptionEmail(lead: NotificationInput) {
           <a href="${appUrl}/api/public/lead-action?token=${tokenFake}" style="display:block;padding:14px 8px;background:#fee2e2;color:#dc2626;text-decoration:none;border-radius:8px;text-align:center;font-weight:600;font-size:13px">🚫 Spam</a>
         </td>
         <td style="padding:0 0 8px 6px;width:33.33%">
-          <a href="${appUrl}/api/public/lead-action?token=${tokenAccept}" style="display:block;padding:14px 8px;background:#dcfce7;color:#16a34a;text-decoration:none;border-radius:8px;text-align:center;font-weight:600;font-size:13px">✅ Acceptă</a>
+          <a href="${appUrl}/api/public/lead-action?token=${tokenBooked}" style="display:block;padding:14px 8px;background:#dcfce7;color:#16a34a;text-decoration:none;border-radius:8px;text-align:center;font-weight:600;font-size:13px">✅ Programat</a>
         </td>
         <td style="padding:0 0 8px 0;width:33.33%">
-          <a href="${appUrl}/api/public/lead-action?token=${tokenComplete}" style="display:block;padding:14px 8px;background:#dbeafe;color:#2563eb;text-decoration:none;border-radius:8px;text-align:center;font-weight:600;font-size:13px">🏁 Finalizează</a>
+          <a href="${appUrl}/api/public/lead-action?token=${tokenComplete}" style="display:block;padding:14px 8px;background:#dbeafe;color:#2563eb;text-decoration:none;border-radius:8px;text-align:center;font-weight:600;font-size:13px">🏁 Finalizat</a>
         </td>
       </tr>
     </table>
