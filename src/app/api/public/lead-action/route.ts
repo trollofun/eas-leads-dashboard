@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { verifyLeadAction } from '@/lib/hmac';
+import { enqueueConversionForLead } from '@/lib/enqueue-conversion';
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,14 +20,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'lead_not_found' }, { status: 404 });
     }
 
-    // Map action to status
-    const actionMap: Record<string, { status: string; event_type: string }> = {
+    // Map action to status. Public email actions must use same terminal statuses as dashboard UI,
+    // otherwise Google conversion queue never fires.
+    const actionMap: Record<string, { status: string; event_type: string; conversion_event?: string }> = {
       confirm: { status: 'confirmed', event_type: 'lead_confirmed_by_reception' },
       fake: { status: 'fake', event_type: 'fake_lead' },
       no_answer: { status: 'no_answer', event_type: 'no_answer' },
-      book: { status: 'appointment_booked', event_type: 'appointment_booked' },
+      book: { status: 'appointment_booked', event_type: 'appointment_booked', conversion_event: 'appointment_booked' },
       accept: { status: 'appointment_accepted', event_type: 'appointment_accepted' },
-      complete: { status: 'completed', event_type: 'work_done' },
+      complete: { status: 'work_completed', event_type: 'work_done', conversion_event: 'work_done' },
     };
 
     const mapping = actionMap[action];
@@ -47,6 +49,13 @@ export async function GET(request: NextRequest) {
         to_status: mapping.status,
       },
     });
+
+    if (mapping.conversion_event) {
+      await enqueueConversionForLead({
+        leadId,
+        conversionEvent: mapping.conversion_event,
+      });
+    }
 
     // Redirect to dashboard lead detail
     return NextResponse.redirect(

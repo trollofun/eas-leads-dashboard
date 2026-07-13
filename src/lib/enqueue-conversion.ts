@@ -12,7 +12,6 @@ export async function enqueueConversionForLead(input: {
 
   if (!lead) throw new Error('Lead not found');
   if (lead.status === 'fake') return null;
-  if (lead.google_conversion_status === 'sent') return null;
   if (!lead.consent_ad_user_data) {
     await prisma.leads.update({
       where: { id: lead.id },
