@@ -21,13 +21,20 @@ export async function GET(request: NextRequest) {
 
     const { leadId, action } = verifyLeadAction(token);
 
-    const lead = await prisma.leads.findUnique({
-      where: { id: leadId },
+    const lead = await prisma.leads.findFirst({
+      where: {
+        OR: [
+          { id: leadId },
+          { idempotency_key: leadId },
+        ],
+      },
     });
 
     if (!lead) {
       return NextResponse.json({ error: 'lead_not_found' }, { status: 404 });
     }
+
+    const realLeadId = lead.id;
 
     // Map action to status. Public email actions must use same terminal statuses as dashboard UI,
     // otherwise Google conversion queue never fires.
@@ -46,13 +53,13 @@ export async function GET(request: NextRequest) {
     }
 
     await prisma.leads.update({
-      where: { id: leadId },
+      where: { id: realLeadId },
       data: { status: mapping.status },
     });
 
     await prisma.lead_events.create({
       data: {
-        lead_id: leadId,
+        lead_id: realLeadId,
         event_type: mapping.event_type,
         from_status: lead.status,
         to_status: mapping.status,
@@ -61,7 +68,7 @@ export async function GET(request: NextRequest) {
 
     if (mapping.conversion_event) {
       await enqueueConversionForLead({
-        leadId,
+        leadId: realLeadId,
         conversionEvent: mapping.conversion_event,
       });
     }
@@ -70,8 +77,8 @@ export async function GET(request: NextRequest) {
     return new NextResponse(confirmationHtml({
       title,
       status: mapping.status,
-      leadId,
-      dashboardUrl: `${process.env.APP_URL}/leads/${leadId}`,
+      leadId: realLeadId,
+      dashboardUrl: `${process.env.APP_URL}/leads/${realLeadId}`,
     }), {
       status: 200,
       headers: { 'Content-Type': 'text/html; charset=utf-8' },
