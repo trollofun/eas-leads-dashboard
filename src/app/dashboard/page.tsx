@@ -52,7 +52,9 @@ export default function DashboardPage() {
               <Link href={`/leads/${lead.id}`} className="flex-1 min-w-0">
                 <p className="font-medium truncate">{lead.name || 'Necunoscut'} <span className="text-gray-400 font-normal">{lead.phone}</span></p>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  <ServiceBadge type={lead.service_type} /> · {lead.car_make} {lead.car_model} · {fmtDate(lead.created_at)}
+                  <ServiceBadge type={lead.service_type} />
+                  {lead.registration_number ? <span className="ml-1 font-semibold text-gray-700">· {lead.registration_number}</span> : null}
+                  <span className="ml-1">· {fmtDate(lead.created_at)}</span>
                 </p>
               </Link>
               <div className="flex gap-2">
@@ -76,6 +78,7 @@ export default function DashboardPage() {
               <Link href={`/leads/${lead.id}`} className="flex-1 min-w-0">
                 <span className="font-medium">{lead.name || 'Necunoscut'}</span>
                 <span className="text-gray-400 text-sm ml-2">{lead.phone}</span>
+                {lead.registration_number ? <span className="text-xs font-semibold text-gray-600 ml-2">{lead.registration_number}</span> : null}
                 <span className="text-xs text-gray-400 ml-2">{lead.appointment_at ? `📅 ${fmtDate(lead.appointment_at)}` : ''}</span>
               </Link>
               <div className="flex gap-2">

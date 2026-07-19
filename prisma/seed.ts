@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   // Create default admin
-  const email = 'admin@euroauto.ro';
+  const email = 'admin@euroautoservice.ro';
   const password = 'admin123';
   const hash = await bcrypt.hash(password, 10);
 
@@ -25,10 +25,10 @@ async function main() {
 
   // Create reception user
   const reception = await prisma.app_users.upsert({
-    where: { email: 'receptie@euroauto.ro' },
+    where: { email: 'receptie@euroautoservice.ro' },
     update: {},
     create: {
-      email: 'receptie@euroauto.ro',
+      email: 'receptie@euroautoservice.ro',
       name: 'Recepție',
       role: 'receptie',
       password_hash: await bcrypt.hash('receptie123', 10),
@@ -40,10 +40,10 @@ async function main() {
 
   // Create inspector ITP user
   const inspector = await prisma.app_users.upsert({
-    where: { email: 'inspector@euroauto.ro' },
+    where: { email: 'inspector@euroautoservice.ro' },
     update: {},
     create: {
-      email: 'inspector@euroauto.ro',
+      email: 'inspector@euroautoservice.ro',
       name: 'Inspector ITP',
       role: 'inspector_itp',
       password_hash: await bcrypt.hash('inspector123', 10),
@@ -55,10 +55,10 @@ async function main() {
 
   // Create chief of service user
   const chief = await prisma.app_users.upsert({
-    where: { email: 'sefservice@euroauto.ro' },
+    where: { email: 'sefservice@euroautoservice.ro' },
     update: {},
     create: {
-      email: 'sefservice@euroauto.ro',
+      email: 'sefservice@euroautoservice.ro',
       name: 'Șef Service',
       role: 'sef_service',
       password_hash: await bcrypt.hash('sef123', 10),

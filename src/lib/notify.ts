@@ -57,22 +57,17 @@ export async function sendReceptionEmail(lead: NotificationInput) {
     </table>
   </div>
 
-  <!-- Actions -->
+  <!-- Internal actions: kept subtle so forwarded/replied emails stay professional -->
   <div style="padding:0 24px 24px">
-    <div style="font-size:12px;color:#999;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Acțiuni rapide</div>
-    <table style="border-collapse:collapse;width:100%" cellpadding="0" cellspacing="0">
-      <tr>
-        <td style="padding:0 6px 8px 0;width:33.33%">
-          <a href="${appUrl}/api/public/lead-action?token=${tokenFake}" style="display:block;padding:14px 8px;background:#fee2e2;color:#dc2626;text-decoration:none;border-radius:8px;text-align:center;font-weight:600;font-size:13px">🚫 Spam</a>
-        </td>
-        <td style="padding:0 0 8px 6px;width:33.33%">
-          <a href="${appUrl}/api/public/lead-action?token=${tokenBooked}" style="display:block;padding:14px 8px;background:#dcfce7;color:#16a34a;text-decoration:none;border-radius:8px;text-align:center;font-weight:600;font-size:13px">✅ Programat</a>
-        </td>
-        <td style="padding:0 0 8px 0;width:33.33%">
-          <a href="${appUrl}/api/public/lead-action?token=${tokenComplete}" style="display:block;padding:14px 8px;background:#dbeafe;color:#2563eb;text-decoration:none;border-radius:8px;text-align:center;font-weight:600;font-size:13px">🏁 Finalizat</a>
-        </td>
-      </tr>
-    </table>
+    <hr style="border:0;border-top:1px solid #eee;margin:0 0 12px">
+    <div style="font-size:11px;color:#9ca3af;margin-bottom:6px">Acțiuni interne Euro Auto Service</div>
+    <div style="font-size:12px;line-height:1.8;color:#6b7280">
+      <a href="${appUrl}/api/public/lead-action?token=${tokenFake}" style="color:#6b7280;text-decoration:underline">Lead nevalid</a>
+      &nbsp;·&nbsp;
+      <a href="${appUrl}/api/public/lead-action?token=${tokenBooked}" style="color:#6b7280;text-decoration:underline">Marchează programat</a>
+      &nbsp;·&nbsp;
+      <a href="${appUrl}/api/public/lead-action?token=${tokenComplete}" style="color:#6b7280;text-decoration:underline">Marchează finalizat</a>
+    </div>
   </div>
 
   <!-- Footer -->
