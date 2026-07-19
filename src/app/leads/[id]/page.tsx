@@ -165,9 +165,9 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 
 function InfoRow({ label, value, strong = false }: { label: string; value: any; strong?: boolean }) {
   return (
-    <div className="flex flex-col gap-1 text-sm py-2 border-b last:border-0 sm:flex-row sm:justify-between sm:gap-4">
-      <span className="text-gray-500 shrink-0">{label}</span>
-      <span className={`min-w-0 break-all sm:text-right ${strong ? 'font-bold text-gray-900' : ''}`}>{value || '—'}</span>
+    <div className="grid gap-1 text-sm py-2 border-b last:border-0">
+      <span className="text-gray-500">{label}</span>
+      <span className={`min-w-0 break-all ${strong ? 'font-bold text-gray-900' : ''}`}>{value || '—'}</span>
     </div>
   );
 }
