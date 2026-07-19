@@ -10,11 +10,11 @@ Endpoint recomandat:
 https://rarvin.euroautoservice.ro/check
 ```
 
-Endpoint vechi `https://itp-worker.tuca-ioan-teodor.workers.dev/check` nu mai este recomandat pentru integrare publică; în test 2026-07-19 a întors Cloudflare `1042` / HTTP 404.
+Endpoint vechi `https://itp-worker.tuca-ioan-teodor.workers.dev/check` funcționează din nou după deploy 2026-07-19, dar pentru integrare publică folosește domeniul canonic `https://rarvin.euroautoservice.ro/check`.
 
 ## Status verificat 2026-07-19
 
-Contract API, CORS și routing: funcționale.
+Contract API, CORS, routing și verificare RARPOL: funcționale după fix 2026-07-19.
 
 Teste reale:
 
@@ -22,20 +22,10 @@ Teste reale:
 OPTIONS /check Origin: https://euroautoservice.ro -> HTTP 204
 POST /check {} -> HTTP 400 {"error":"missing civ or vin"}
 POST /debug -> HTTP 200, WEBSHARE_TOKEN prezent, proxy_count=1
+POST /check {"civ":"R-298707"} -> HTTP 200, VALABIL, expira_iso=2028-07-03, attempts=1
 ```
 
-Test RARPOL live cu CIV/VIN a ajuns la worker, dar a eșuat după retry-uri CAPTCHA:
-
-```json
-{
-  "success": true,
-  "error": "captcha_failed_after_retries",
-  "kind": "captcha_wrong",
-  "attempts": 6
-}
-```
-
-Deci integrarea poate fi documentată și folosită ca interfață, dar înainte de producție trebuie reparată acuratețea CAPTCHA/proxy flow sau reantrenat modelul.
+Root cause incident 2026-07-19: HTML-ul RARPOL folosește câmpul `cod_verificare`; workerul trimitea `cod_securitate`. Modelul CAPTCHA era OK. Fix: ambele ramuri `verifyThroughProxy` și `verifyDirect` trimit `cod_verificare`.
 
 ## Endpointuri
 
@@ -185,18 +175,7 @@ Eroare validare:
 { "error": "missing civ or vin" }
 ```
 
-Eroare operațională curentă posibilă:
-
-```json
-{
-  "success": true,
-  "error": "captcha_failed_after_retries",
-  "kind": "captcha_wrong",
-  "attempts": 6
-}
-```
-
-Important: tratați orice `error` ca eșec UI, chiar dacă `success` vine `true` din implementarea actuală.
+Important: tratați orice `error` ca eșec UI, chiar dacă `success` poate veni `true` din implementarea actuală.
 
 ## Integrare browser minimă
 
@@ -330,7 +309,7 @@ Pentru test RARPOL complet, folosește un CIV/VIN cunoscut și verifică:
 ## Limitări și riscuri
 
 - RARPOL poate schimba HTML/form/captcha oricând.
-- CAPTCHA solver actual a eșuat live pe 2026-07-19 după 6 încercări; nu promite funcționare până nu este reparat și retestat.
+- Incident 2026-07-19: eșecul live nu a fost model CAPTCHA; a fost nume greșit câmp RARPOL (`cod_securitate` în loc de `cod_verificare`). Fix deployat și retestat.
 - `success:true` cu `error` este comportament ambiguu; clientul trebuie să trateze `error` ca eșec.
 - `/lead` salvează în Worker KV, nu trimite automat în EAS Leads Dashboard.
 - Nu afișa `captcha` în UI public; este doar debug.
@@ -341,5 +320,5 @@ Pentru test RARPOL complet, folosește un CIV/VIN cunoscut și verifică:
 2. Adaugă `GET /health` fără auth care verifică doar worker config, nu RARPOL.
 3. Mută CORS allowed origins într-o listă din env/config, nu regex hardcodat.
 4. Adaugă rate-limit per IP/API key.
-5. Reantrenează sau recalibrează CAPTCHA modelul pe mostre recente RARPOL.
+5. Păstrează test de regresie pe câmpul RARPOL `cod_verificare` + un CIV cunoscut. Reantrenează CAPTCHA doar dacă testul manual confirmă cod citit greșit.
 6. Ascunde câmpurile debug (`captcha`, `proxy`) în răspuns public sau fă-le disponibile doar cu flag intern.
