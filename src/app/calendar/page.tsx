@@ -49,6 +49,7 @@ export default function CalendarPage() {
                 <Link href={`/leads/${lead.id}`} className="flex-1 min-w-0">
                   <span className="font-medium">{lead.name || 'Necunoscut'}</span>
                   <span className="text-gray-400 text-sm ml-2">{lead.phone}</span>
+                  {lead.registration_number && <span className="text-xs font-bold text-gray-700 ml-2">{lead.registration_number}</span>}
                 </Link>
                 <ServiceBadge type={lead.service_type} />
                 <span className="text-xs text-gray-400">{lead.car_make} {lead.car_model}</span>

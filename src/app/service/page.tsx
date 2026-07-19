@@ -32,7 +32,7 @@ export default function ServicePage() {
               <th className="p-3">Programare</th>
               <th className="p-3">Nume</th>
               <th className="p-3">Serviciu</th>
-              <th className="p-3">Mașină</th>
+              <th className="p-3">Telefon / Nr. auto</th>
               <th className="p-3">Status</th>
               <th className="p-3">Acțiune</th>
             </tr>
@@ -43,7 +43,10 @@ export default function ServicePage() {
                 <td className="p-3 text-xs whitespace-nowrap">{fmtDate(lead.appointment_at)}</td>
                 <td className="p-3"><Link href={`/leads/${lead.id}`} className="font-medium hover:text-blue-600">{lead.name || '—'}</Link></td>
                 <td className="p-3"><ServiceBadge type={lead.service_type} /></td>
-                <td className="p-3 text-xs">{lead.car_make} {lead.car_model}</td>
+                <td className="p-3 text-xs">
+                  {lead.phone ? <a href={`tel:${lead.phone}`} className="text-blue-600">{lead.phone}</a> : '—'}
+                  {lead.registration_number && <span className="ml-2 font-mono font-bold">{lead.registration_number}</span>}
+                </td>
                 <td className="p-3"><StatusBadge status={lead.status} /></td>
                 <td className="p-3">
                   <div className="flex gap-1.5">

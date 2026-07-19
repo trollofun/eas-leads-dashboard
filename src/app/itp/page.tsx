@@ -38,7 +38,7 @@ export default function ITPPage() {
             <tr className="border-b text-left text-gray-500 text-xs uppercase">
               <th className="p-3">Programare</th>
               <th className="p-3">Nume</th>
-              <th className="p-3">Mașină</th>
+              <th className="p-3">Telefon</th>
               <th className="p-3">Nr. înmatr.</th>
               <th className="p-3">Status</th>
               <th className="p-3">Acțiune</th>
@@ -49,8 +49,8 @@ export default function ITPPage() {
               <tr key={lead.id} className="border-b last:border-0 hover:bg-gray-50">
                 <td className="p-3 text-xs whitespace-nowrap">{fmtDate(lead.appointment_at)}</td>
                 <td className="p-3"><Link href={`/leads/${lead.id}`} className="font-medium hover:text-blue-600">{lead.name || '—'}</Link></td>
-                <td className="p-3 text-xs">{lead.car_make} {lead.car_model} {lead.car_year}</td>
-                <td className="p-3 font-mono text-xs">{lead.registration_number || '—'}</td>
+                <td className="p-3 text-xs">{lead.phone ? <a href={`tel:${lead.phone}`} className="text-blue-600">{lead.phone}</a> : '—'}</td>
+                <td className="p-3 font-mono text-xs font-bold">{lead.registration_number || '—'}</td>
                 <td className="p-3"><StatusBadge status={lead.status} /></td>
                 <td className="p-3">
                   <div className="flex gap-1.5">
