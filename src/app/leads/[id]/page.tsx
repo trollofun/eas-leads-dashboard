@@ -126,6 +126,10 @@ export default function LeadDetailPage() {
           <InfoRow label="GCLID" value={tracking.gclid || raw.gclid || raw.gcl_id || '—'} />
           <InfoRow label="Landing page" value={tracking.landing_page || raw.page_url || raw.form_url || '—'} />
           <InfoRow label="UTM" value={[tracking.utm_source, tracking.utm_medium, tracking.utm_campaign].filter(Boolean).join(' / ') || '—'} />
+          <InfoRow label="Google lead ID" value={raw.lead_id || '—'} />
+          <InfoRow label="Campaign / Adgroup" value={[raw.campaign_id, raw.adgroup_id].filter(Boolean).join(' / ') || '—'} />
+          <InfoRow label="Creative" value={raw.creative_id || '—'} />
+          <InfoRow label="Telefon verificat" value={raw.user_column_data?.find?.((c: any) => c.column_id === 'PHONE_NUMBER_VERIFIED')?.string_value || '—'} />
           <InfoRow label="User agent" value={tracking.user_agent || raw.user_agent || raw.meta?.user_agent || '—'} />
         </Panel>
 
