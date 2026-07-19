@@ -31,16 +31,6 @@ export default function LeadDetailPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const act = async (status: string) => {
-    // work_completed with no final value: prompt inline (value drives Google conversion)
-    if (status === 'work_completed' && !finalValue) {
-      const v = window.prompt('Valoare finală lucrare (RON)? Lasă gol pentru valoarea implicită.');
-      if (v) await save({ final_value: Number(v) });
-    }
-    await updateLeadStatus(lead.id, status);
-    load();
-  };
-
   const save = async (fields: Record<string, any>) => {
     setSaving(true);
     await fetch(`/api/leads/${lead.id}`, {
@@ -52,96 +42,101 @@ export default function LeadDetailPage() {
     load();
   };
 
+  const act = async (status: string) => {
+    if (status === 'work_completed' && !finalValue) {
+      const v = window.prompt('Valoare finală lucrare (RON)? Lasă gol pentru valoarea implicită.');
+      if (v) await save({ final_value: Number(v) });
+    }
+    await updateLeadStatus(lead.id, status);
+    load();
+  };
+
   if (loading) return <Shell><Spinner /></Shell>;
   if (!lead || lead.error) return <Shell><p className="p-8">Lead negăsit</p></Shell>;
+
+  const raw = lead.raw_metadata?.original_body || {};
+  const tracking = lead.ad_click || {};
+  const car = [lead.car_make, lead.car_model, lead.car_year].filter(Boolean).join(' ');
 
   return (
     <Shell>
       <Link href="/leads" className="text-sm text-blue-600 mb-3 inline-block">← Leaduri</Link>
 
-      {/* Header: who + status + next action, all in one glance */}
       <div className="bg-white rounded-lg border p-4 mb-4">
         <div className="flex flex-wrap items-center gap-3">
           <StatusBadge status={lead.status} />
-          <h1 className="text-xl font-bold">{lead.name || 'Necunoscut'}</h1>
           <ServiceBadge type={lead.service_type} />
-          {lead.fake_score > 40 && (
-            <span className="px-2 py-0.5 rounded bg-red-100 text-red-700 text-xs font-semibold">⚠ risc {lead.fake_score}</span>
-          )}
+          {lead.registration_number && <span className="px-3 py-1 rounded bg-slate-900 text-white text-sm font-bold tracking-wide">{lead.registration_number}</span>}
+          {lead.fake_score > 40 && <span className="px-2 py-0.5 rounded bg-red-100 text-red-700 text-xs font-semibold">risc {lead.fake_score}/100</span>}
         </div>
-        <div className="flex flex-wrap gap-4 mt-3 text-sm">
-          {lead.phone && <a href={`tel:${lead.phone}`} className="text-blue-600 font-medium">📞 {lead.phone}</a>}
-          {lead.email && <a href={`mailto:${lead.email}`} className="text-blue-600">✉ {lead.email}</a>}
-          {lead.registration_number && <span className="font-semibold text-gray-800">Nr. auto: {lead.registration_number}</span>}
+        <h1 className="text-2xl font-bold mt-3">{lead.name || 'Necunoscut'}</h1>
+        <div className="flex flex-wrap gap-4 mt-2 text-sm">
+          {lead.phone && <a href={`tel:${lead.phone}`} className="text-blue-600 font-medium">{lead.phone}</a>}
+          {lead.email && <a href={`mailto:${lead.email}`} className="text-blue-600">{lead.email}</a>}
+          <span className="text-gray-500">Creat: {fmtDate(lead.created_at)}</span>
         </div>
-        {/* Next actions — big, obvious */}
         <div className="flex flex-wrap gap-2 mt-4">
           {(NEXT_ACTIONS[lead.status] || []).map(([label, next, color]) => (
             <ActionButton key={next} label={label} color={color} onClick={() => act(next)} />
           ))}
-          {lead.status !== 'fake' && lead.status !== 'new' && (
-            <ActionButton label="Marchează fake" color="gray" onClick={() => act('fake')} />
-          )}
+          {lead.status !== 'fake' && <ActionButton label="Lead nevalid" color="gray" onClick={() => act('fake')} />}
         </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4">
-        {/* Editable operational fields */}
-        <div className="bg-white rounded-lg border p-4">
-          <h3 className="text-sm font-semibold text-gray-500 mb-3">Operațional</h3>
+      <div className="grid xl:grid-cols-3 gap-4">
+        <Panel title="Client">
+          <InfoRow label="Nume" value={lead.name || '—'} />
+          <InfoRow label="Telefon" value={lead.phone || '—'} />
+          <InfoRow label="Email" value={lead.email || '—'} />
+          <InfoRow label="Mesaj" value={lead.message || raw.message || raw.mesaj || '—'} />
+        </Panel>
 
+        <Panel title="Vehicul / ITP">
+          <InfoRow label="Nr. înmatriculare" value={lead.registration_number || raw.numar_inmatriculare || raw.registration_number || raw.nr_inmatriculare || '—'} strong />
+          <InfoRow label="Mașină" value={car || '—'} />
+          <InfoRow label="Data dorită" value={raw.data_programarii_itp || raw.data || raw.date || '—'} />
+          <InfoRow label="Serviciu" value={lead.service_type || '—'} />
+        </Panel>
+
+        <Panel title="Reconciliere">
+          <InfoRow label="Status" value={STATUS_LABELS[lead.status] || lead.status} />
+          <InfoRow label="Programare" value={fmtDate(lead.appointment_at)} />
+          <InfoRow label="Sosit la" value={fmtDate(lead.arrived_at)} />
+          <InfoRow label="Valoare finală" value={lead.final_value ? `${lead.final_value} RON` : '—'} />
+        </Panel>
+
+        <Panel title="Operațional">
           <label className="block text-xs text-gray-500 mb-1">Programare</label>
           <div className="flex gap-2 mb-3">
-            <input
-              type="datetime-local"
-              value={appointmentAt}
-              onChange={e => setAppointmentAt(e.target.value)}
-              className="border rounded px-2 py-1.5 text-sm flex-1"
-            />
-            <ActionButton label="Salvează" small disabled={saving}
-              onClick={() => save({ appointment_at: appointmentAt ? new Date(appointmentAt).toISOString() : null })} />
+            <input type="datetime-local" value={appointmentAt} onChange={e => setAppointmentAt(e.target.value)} className="border rounded px-2 py-1.5 text-sm flex-1" />
+            <ActionButton label="Salvează" small disabled={saving} onClick={() => save({ appointment_at: appointmentAt ? new Date(appointmentAt).toISOString() : null })} />
           </div>
-
           <label className="block text-xs text-gray-500 mb-1">Valoare finală (RON)</label>
           <div className="flex gap-2 mb-3">
-            <input
-              type="number"
-              value={finalValue}
-              onChange={e => setFinalValue(e.target.value)}
-              placeholder={lead.estimated_value ? `estimat: ${lead.estimated_value}` : '—'}
-              className="border rounded px-2 py-1.5 text-sm flex-1"
-            />
-            <ActionButton label="Salvează" small disabled={saving}
-              onClick={() => save({ final_value: finalValue ? Number(finalValue) : null })} />
+            <input type="number" value={finalValue} onChange={e => setFinalValue(e.target.value)} placeholder={lead.estimated_value ? `estimat: ${lead.estimated_value}` : '—'} className="border rounded px-2 py-1.5 text-sm flex-1" />
+            <ActionButton label="Salvează" small disabled={saving} onClick={() => save({ final_value: finalValue ? Number(finalValue) : null })} />
           </div>
-
           <label className="block text-xs text-gray-500 mb-1">Notă internă</label>
-          <textarea
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-            rows={3}
-            className="border rounded px-2 py-1.5 text-sm w-full mb-2"
-          />
+          <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} className="border rounded px-2 py-1.5 text-sm w-full mb-2" />
           <ActionButton label="Salvează nota" small disabled={saving} onClick={() => save({ internal_notes: notes })} />
-        </div>
+        </Panel>
 
-        {/* Read-only context */}
-        <div className="bg-white rounded-lg border p-4">
-          <h3 className="text-sm font-semibold text-gray-500 mb-3">Date lead</h3>
-          <InfoRow label="Nr. înmatriculare" value={lead.registration_number || '—'} />
-          <InfoRow label="Serviciu" value={lead.service_type || '—'} />
-          <InfoRow label="Sursă" value={lead.source || '—'} />
-          <InfoRow label="Mesaj client" value={lead.message || '—'} />
-          <InfoRow label="Creat la" value={fmtDate(lead.created_at)} />
-          <InfoRow label="GCLID" value={lead.ad_click?.gclid || '—'} />
-          <InfoRow label="Landing page" value={lead.ad_click?.landing_page || '—'} />
-          <InfoRow label="Idempotency" value={lead.idempotency_key || '—'} />
-          <InfoRow label="Conversie Google" value={lead.google_conversion_status || 'not_ready'} />
+        <Panel title="Tracking PPC / formular">
+          <InfoRow label="Sursă lead" value={lead.source || '—'} />
+          <InfoRow label="GCLID" value={tracking.gclid || raw.gclid || raw.gcl_id || '—'} />
+          <InfoRow label="Landing page" value={tracking.landing_page || raw.page_url || raw.form_url || '—'} />
+          <InfoRow label="UTM" value={[tracking.utm_source, tracking.utm_medium, tracking.utm_campaign].filter(Boolean).join(' / ') || '—'} />
+          <InfoRow label="User agent" value={tracking.user_agent || raw.user_agent || raw.meta?.user_agent || '—'} />
+        </Panel>
+
+        <Panel title="Conversii Google Ads">
+          <InfoRow label="Status conversie" value={lead.google_conversion_status || 'not_ready'} />
           <InfoRow label="Trimisă la" value={fmtDate(lead.google_conversion_sent_at)} />
-        </div>
+          <InfoRow label="Transaction ID" value={lead.google_transaction_id || '—'} />
+          <InfoRow label="Idempotency" value={lead.idempotency_key || '—'} />
+        </Panel>
       </div>
 
-      {/* History */}
       <div className="bg-white rounded-lg border p-4 mt-4">
         <h3 className="text-sm font-semibold text-gray-500 mb-3">Istoric</h3>
         <div className="space-y-1.5 max-h-64 overflow-y-auto">
@@ -160,11 +155,15 @@ export default function LeadDetailPage() {
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+  return <section className="bg-white rounded-lg border p-4"><h3 className="text-sm font-semibold text-gray-500 mb-3">{title}</h3>{children}</section>;
+}
+
+function InfoRow({ label, value, strong = false }: { label: string; value: any; strong?: boolean }) {
   return (
-    <div className="flex justify-between gap-4 text-sm py-1.5 border-b last:border-0">
+    <div className="flex flex-col gap-1 text-sm py-2 border-b last:border-0 sm:flex-row sm:justify-between sm:gap-4">
       <span className="text-gray-500 shrink-0">{label}</span>
-      <span className="text-right break-words">{value}</span>
+      <span className={`break-words sm:text-right ${strong ? 'font-bold text-gray-900' : ''}`}>{value || '—'}</span>
     </div>
   );
 }
