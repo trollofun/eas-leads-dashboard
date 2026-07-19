@@ -67,10 +67,10 @@ Nodul `Send to EAS Dashboard` trebuie să lase în output:
 {
   "eas_idem": "<sha256 stable id>",
   "dashboard_action_links": {
-    "spam": "http://192.168.1.164/api/public/lead-action?token=...",
-    "programat": "http://192.168.1.164/api/public/lead-action?token=...",
-    "finalizat": "http://192.168.1.164/api/public/lead-action?token=...",
-    "dashboard": "http://192.168.1.164/leads"
+    "spam": "https://leads.dev.euroautoservice.ro/api/public/lead-action?token=...",
+    "programat": "https://leads.dev.euroautoservice.ro/api/public/lead-action?token=...",
+    "finalizat": "https://leads.dev.euroautoservice.ro/api/public/lead-action?token=...",
+    "dashboard": "https://leads.dev.euroautoservice.ro/leads"
   },
   "eas_dashboard": {
     "ok": false,
@@ -135,10 +135,12 @@ N8N_BASE_URL=https://n8n.uitdeitp.ro
 Dashboard ingest env vars:
 
 ```text
-EAS_DASHBOARD_INGEST_URL=http://10.99.0.1/api/ingest/lead
+EAS_DASHBOARD_INGEST_URL=https://127.0.0.1/api/ingest/lead
+EAS_DASHBOARD_HOST_HEADER=leads.dev.euroautoservice.ro
+EAS_DASHBOARD_TLS_VERIFY=0
 EAS_INGEST_API_KEY=<dashboard ingest api key>
 EAS_INGEST_HMAC_SECRET=<dashboard ingest hmac secret>
-EAS_DASHBOARD_APP_URL=http://192.168.1.164
+EAS_DASHBOARD_APP_URL=https://leads.dev.euroautoservice.ro
 EAS_BRIDGE_STATE_FILE=~/.hermes/profiles/beba/cron/state/n8n_lead_bridge.json
 ```
 

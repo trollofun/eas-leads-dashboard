@@ -16,15 +16,18 @@ import hmac as hmac_mod
 import json
 import os
 import time
+import ssl
 import urllib.request
 
 N8N_BASE = os.environ.get('N8N_BASE_URL', 'https://n8n.uitdeitp.ro').rstrip('/')
 N8N_KEY = os.environ['N8N_API_KEY']
 DASH_URL = os.environ['EAS_DASHBOARD_INGEST_URL']
+DASH_HOST = os.environ.get('EAS_DASHBOARD_HOST_HEADER', '')
+TLS_VERIFY = os.environ.get('EAS_DASHBOARD_TLS_VERIFY', '1') != '0'
 API_KEY = os.environ['EAS_INGEST_API_KEY']
 HMAC_SECRET = os.environ['EAS_INGEST_HMAC_SECRET']
 STATE_FILE = os.path.expanduser(os.environ.get('EAS_BRIDGE_STATE_FILE', '~/.cache/eas/n8n_lead_bridge.json'))
-APP_URL = os.environ.get('EAS_DASHBOARD_APP_URL', 'http://192.168.1.164')
+APP_URL = os.environ.get('EAS_DASHBOARD_APP_URL', 'https://leads.dev.euroautoservice.ro')
 
 WORKFLOWS = {
     'rf5hRUxNvEPZLtjr': {'source': 'ppc_shortform', 'name': 'Programare ITP ShortForm'},
@@ -106,11 +109,15 @@ def post_lead(payload, idem):
     raw = json.dumps(payload)
     ts = str(int(time.time() * 1000))
     sig = hmac_mod.new(HMAC_SECRET.encode(), f'{ts}.{raw}'.encode(), hashlib.sha256).hexdigest()
-    req = urllib.request.Request(DASH_URL, data=raw.encode(), method='POST', headers={
+    headers = {
         'Content-Type': 'application/json', 'X-EAS-Api-Key': API_KEY,
         'X-EAS-Timestamp': ts, 'X-EAS-Signature': sig, 'X-Idempotency-Key': idem,
-    })
-    with urllib.request.urlopen(req, timeout=20) as r:
+    }
+    if DASH_HOST:
+        headers['Host'] = DASH_HOST
+    req = urllib.request.Request(DASH_URL, data=raw.encode(), method='POST', headers=headers)
+    ctx = None if TLS_VERIFY else ssl._create_unverified_context()
+    with urllib.request.urlopen(req, timeout=20, context=ctx) as r:
         return r.status, r.read().decode()[:300]
 
 def main():
