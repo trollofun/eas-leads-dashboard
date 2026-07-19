@@ -160,14 +160,14 @@ export default function LeadDetailPage() {
 }
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
-  return <section className="bg-white rounded-lg border p-4"><h3 className="text-sm font-semibold text-gray-500 mb-3">{title}</h3>{children}</section>;
+  return <section className="min-w-0 bg-white rounded-lg border p-4"><h3 className="text-sm font-semibold text-gray-500 mb-3">{title}</h3>{children}</section>;
 }
 
 function InfoRow({ label, value, strong = false }: { label: string; value: any; strong?: boolean }) {
   return (
     <div className="flex flex-col gap-1 text-sm py-2 border-b last:border-0 sm:flex-row sm:justify-between sm:gap-4">
       <span className="text-gray-500 shrink-0">{label}</span>
-      <span className={`break-words sm:text-right ${strong ? 'font-bold text-gray-900' : ''}`}>{value || '—'}</span>
+      <span className={`min-w-0 break-all sm:text-right ${strong ? 'font-bold text-gray-900' : ''}`}>{value || '—'}</span>
     </div>
   );
 }
