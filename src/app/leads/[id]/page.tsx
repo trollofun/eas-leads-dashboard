@@ -72,7 +72,7 @@ export default function LeadDetailPage() {
         <div className="flex flex-wrap gap-4 mt-3 text-sm">
           {lead.phone && <a href={`tel:${lead.phone}`} className="text-blue-600 font-medium">📞 {lead.phone}</a>}
           {lead.email && <a href={`mailto:${lead.email}`} className="text-blue-600">✉ {lead.email}</a>}
-          <span className="text-gray-600">🚗 {lead.car_make} {lead.car_model} {lead.car_year} {lead.registration_number ? `· ${lead.registration_number}` : ''}</span>
+          {lead.registration_number && <span className="font-semibold text-gray-800">Nr. auto: {lead.registration_number}</span>}
         </div>
         {/* Next actions — big, obvious */}
         <div className="flex flex-wrap gap-2 mt-4">
@@ -127,11 +127,15 @@ export default function LeadDetailPage() {
 
         {/* Read-only context */}
         <div className="bg-white rounded-lg border p-4">
-          <h3 className="text-sm font-semibold text-gray-500 mb-3">Context</h3>
+          <h3 className="text-sm font-semibold text-gray-500 mb-3">Date lead</h3>
+          <InfoRow label="Nr. înmatriculare" value={lead.registration_number || '—'} />
+          <InfoRow label="Serviciu" value={lead.service_type || '—'} />
           <InfoRow label="Sursă" value={lead.source || '—'} />
           <InfoRow label="Mesaj client" value={lead.message || '—'} />
           <InfoRow label="Creat la" value={fmtDate(lead.created_at)} />
-          <InfoRow label="Sosit la" value={fmtDate(lead.arrived_at)} />
+          <InfoRow label="GCLID" value={lead.ad_click?.gclid || '—'} />
+          <InfoRow label="Landing page" value={lead.ad_click?.landing_page || '—'} />
+          <InfoRow label="Idempotency" value={lead.idempotency_key || '—'} />
           <InfoRow label="Conversie Google" value={lead.google_conversion_status || 'not_ready'} />
           <InfoRow label="Trimisă la" value={fmtDate(lead.google_conversion_sent_at)} />
         </div>
