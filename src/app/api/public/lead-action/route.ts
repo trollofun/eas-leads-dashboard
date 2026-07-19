@@ -21,14 +21,16 @@ export async function GET(request: NextRequest) {
 
     const { leadId, action } = verifyLeadAction(token);
 
-    const lead = await prisma.leads.findFirst({
-      where: {
-        OR: [
-          { id: leadId },
-          { idempotency_key: leadId },
-        ],
-      },
-    });
+    // leadId may be a UUID (dashboard email) or an idempotency_key hex (n8n email).
+    // Querying a UUID column with a 64-char hex makes Prisma throw, so branch.
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(leadId);
+    const lead = isUuid
+      ? await prisma.leads.findFirst({
+          where: { OR: [{ id: leadId }, { idempotency_key: leadId }] },
+        })
+      : await prisma.leads.findFirst({
+          where: { idempotency_key: leadId },
+        });
 
     if (!lead) {
       return NextResponse.json({ error: 'lead_not_found' }, { status: 404 });
