@@ -12,9 +12,29 @@ function confirmationHtml(input: {
   return `<!doctype html><html lang="ro"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${input.title}</title></head><body style="margin:0;background:#f6f7fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#111827"><main style="min-height:100vh;display:grid;place-items:center;padding:24px"><section style="width:min(420px,100%);background:#fff;border-radius:16px;padding:28px;box-shadow:0 10px 30px rgba(15,23,42,.12);text-align:center"><div style="font-size:44px;margin-bottom:8px">✅</div><h1 style="font-size:24px;margin:0 0 8px">${input.title}</h1><p style="margin:0 0 20px;color:#4b5563">Status nou: <strong>${input.status}</strong></p><p style="margin:0 0 18px;color:#6b7280">Poți închide pagina.</p>${input.dashboardUrl ? `<a href="${input.dashboardUrl}" style="display:inline-block;color:#6b7280;font-size:13px;text-decoration:none">Deschide dashboard</a>` : ''}</section></main></body></html>`;
 }
 
+// GET = doar pagină de confirmare (scannerele de linkuri din email fac GET automat;
+// fără asta ar crea conversii Google Ads false). Schimbarea se face doar prin POST.
+const LABELS: Record<string, [string, string]> = {
+  book: ['✅ Confirm: Programat', '#16a34a'], complete: ['🏁 Confirm: A venit', '#2563eb'],
+  fake: ['🚫 Confirm: Fake / spam', '#6b7280'], confirm: ['Confirm', '#2563eb'],
+  no_answer: ['Confirm: Nu răspunde', '#6b7280'], accept: ['Confirm: Acceptat', '#2563eb'],
+};
+
 export async function GET(request: NextRequest) {
+  const token = request.nextUrl.searchParams.get('token') || '';
   try {
-    const token = request.nextUrl.searchParams.get('token');
+    const { action } = verifyLeadAction(token);
+    const [label, bg] = LABELS[action] || ['Confirm', '#2563eb'];
+    const t = token.replace(/[^A-Za-z0-9_-]/g, '');
+    return new NextResponse(`<!doctype html><html lang="ro"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Confirmă</title></head><body style="margin:0;background:#f6f7fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"><main style="min-height:100vh;display:grid;place-items:center;padding:24px"><form method="post" action="/api/public/lead-action" style="width:min(380px,100%)"><input type="hidden" name="token" value="${t}"><button type="submit" style="width:100%;padding:18px;border:0;border-radius:12px;background:${bg};color:#fff;font-size:18px;font-weight:700">${label}</button></form></main></body></html>`, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
+  } catch {
+    return NextResponse.json({ error: 'invalid_token' }, { status: 400 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const token = String((await request.formData()).get('token') || '');
     if (!token) {
       return NextResponse.json({ error: 'missing_token' }, { status: 400 });
     }
