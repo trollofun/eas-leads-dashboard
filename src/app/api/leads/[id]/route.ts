@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { enqueueConversionForLead } from '@/lib/enqueue-conversion';
+import { validateAndNormalizePlate } from '@/lib/plate-validator';
 
 // Only 2 conversions are configured in dashboard_settings.google_conversions:
 // appointment_booked + work_done (covers both service and ITP).
@@ -50,6 +51,33 @@ export async function PATCH(
 
   for (const field of allowedFields) {
     if (body[field] !== undefined) updateData[field] = body[field];
+  }
+
+  // Validate and normalize registration number if provided
+  if (body.registration_number !== undefined && body.registration_number) {
+    try {
+      updateData.registration_number = validateAndNormalizePlate(body.registration_number);
+    } catch (err: any) {
+      return NextResponse.json(
+        { error: 'invalid_registration_number', message: err.message },
+        { status: 400 }
+      );
+    }
+  }
+
+  // CRITICAL: appointment_booked and work_completed require registration number
+  const criticalStatuses = ['appointment_booked', 'work_completed'];
+  if (body.status && criticalStatuses.includes(body.status)) {
+    const finalRegNumber = updateData.registration_number || lead.registration_number;
+    if (!finalRegNumber) {
+      return NextResponse.json(
+        {
+          error: 'registration_number_required',
+          message: 'Numărul de înmatriculare este obligatoriu pentru marcarea ca Programat sau Finalizat.',
+        },
+        { status: 400 }
+      );
+    }
   }
 
   updateData.updated_at = new Date();

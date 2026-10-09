@@ -43,11 +43,31 @@ export default function LeadDetailPage() {
   };
 
   const act = async (status: string) => {
+    // CRITICAL: appointment_booked and work_completed require registration number
+    const criticalStatuses = ['appointment_booked', 'work_completed'];
+    if (criticalStatuses.includes(status) && !lead.registration_number) {
+      const regNum = window.prompt(
+        'Număr de înmatriculare (obligatoriu pentru Programat/Finalizat):\n\n' +
+        'Format: cod județ + cifre + litere\n' +
+        'Exemplu: CT-05-EAM, B-123-ABC'
+      );
+      if (!regNum) {
+        alert('Numărul de înmatriculare este obligatoriu pentru această acțiune.');
+        return;
+      }
+      // Save registration number first
+      await save({ registration_number: regNum });
+    }
+
     if (status === 'work_completed' && !finalValue) {
       const v = window.prompt('Valoare finală lucrare (RON)? Lasă gol pentru valoarea implicită.');
       if (v) await save({ final_value: Number(v) });
     }
-    await updateLeadStatus(lead.id, status);
+
+    const success = await updateLeadStatus(lead.id, status);
+    if (!success) {
+      alert('Eroare la actualizarea statusului. Verifică dacă numărul de înmatriculare este valid.');
+    }
     load();
   };
 

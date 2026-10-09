@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { verifyLeadAction } from '@/lib/hmac';
 import { enqueueConversionForLead } from '@/lib/enqueue-conversion';
+import { validateAndNormalizePlate } from '@/lib/plate-validator';
 
 function confirmationHtml(input: {
   title: string;
@@ -23,9 +24,32 @@ const LABELS: Record<string, [string, string]> = {
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get('token') || '';
   try {
-    const { action } = verifyLeadAction(token);
+    const { leadId, action } = verifyLeadAction(token);
     const [label, bg] = LABELS[action] || ['Confirm', '#2563eb'];
     const t = token.replace(/[^A-Za-z0-9_-]/g, '');
+
+    // CRITICAL: book/complete actions require registration number
+    const criticalActions = ['book', 'complete'];
+    if (criticalActions.includes(action)) {
+      // Check if lead has registration number
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(leadId);
+      const lead = isUuid
+        ? await prisma.leads.findFirst({
+            where: { OR: [{ id: leadId }, { idempotency_key: leadId }] },
+            select: { registration_number: true },
+          })
+        : await prisma.leads.findFirst({
+            where: { idempotency_key: leadId },
+            select: { registration_number: true },
+          });
+
+      if (!lead?.registration_number) {
+        // Show form that asks for registration number
+        return new NextResponse(`<!doctype html><html lang="ro"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Completează număr înmatriculare</title></head><body style="margin:0;background:#f6f7fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#111827"><main style="min-height:100vh;display:grid;place-items:center;padding:24px"><form method="post" action="/api/public/lead-action" style="width:min(420px,100%);background:#fff;border-radius:16px;padding:28px;box-shadow:0 10px 30px rgba(15,23,42,.12)"><input type="hidden" name="token" value="${t}"><h1 style="font-size:22px;margin:0 0 8px;font-weight:700">Număr de înmatriculare necesar</h1><p style="margin:0 0 20px;color:#6b7280;font-size:15px">Pentru a marca acest lead ca <strong>${action === 'book' ? 'Programat' : 'Finalizat'}</strong>, introduceți numărul de înmatriculare:</p><label style="display:block;margin-bottom:16px"><span style="display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:#374151">Număr înmatriculare</span><input type="text" name="registration_number" required placeholder="CT-05-EAM sau B-123-ABC" pattern="[A-Z]{1,2}[\\s\\-]?\\d{2,3}[\\s\\-]?[A-Z]{3}" style="width:100%;padding:12px;border:1px solid #d1d5db;border-radius:8px;font-size:16px;text-transform:uppercase" autocomplete="off"></label><button type="submit" style="width:100%;padding:14px;border:0;border-radius:10px;background:${bg};color:#fff;font-size:16px;font-weight:700;cursor:pointer">${label}</button><p style="margin:16px 0 0;color:#9ca3af;font-size:12px;text-align:center">Format: cod județ + cifre + litere<br>Exemplu: CT-05-EAM, B-123-ABC</p></form></main></body></html>`, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
+      }
+    }
+
+    // Normal confirmation button (no registration number needed, or already has one)
     return new NextResponse(`<!doctype html><html lang="ro"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Confirmă</title></head><body style="margin:0;background:#f6f7fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif"><main style="min-height:100vh;display:grid;place-items:center;padding:24px"><form method="post" action="/api/public/lead-action" style="width:min(380px,100%)"><input type="hidden" name="token" value="${t}"><button type="submit" style="width:100%;padding:18px;border:0;border-radius:12px;background:${bg};color:#fff;font-size:18px;font-weight:700">${label}</button></form></main></body></html>`, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } });
   } catch {
     return NextResponse.json({ error: 'invalid_token' }, { status: 400 });
@@ -34,7 +58,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const token = String((await request.formData()).get('token') || '');
+    const formData = await request.formData();
+    const token = String(formData.get('token') || '');
+    const registrationNumber = String(formData.get('registration_number') || '');
+
     if (!token) {
       return NextResponse.json({ error: 'missing_token' }, { status: 400 });
     }
@@ -72,6 +99,40 @@ export async function POST(request: NextRequest) {
     const mapping = actionMap[action];
     if (!mapping) {
       return NextResponse.json({ error: 'unknown_action' }, { status: 400 });
+    }
+
+    // CRITICAL: book/complete require registration number
+    const criticalActions = ['book', 'complete'];
+    if (criticalActions.includes(action)) {
+      const finalRegNumber = registrationNumber || lead.registration_number;
+      if (!finalRegNumber) {
+        return NextResponse.json(
+          {
+            error: 'registration_number_required',
+            message: 'Numărul de înmatriculare este obligatoriu pentru această acțiune.',
+          },
+          { status: 400 }
+        );
+      }
+
+      // Validate and normalize registration number if provided
+      if (registrationNumber) {
+        try {
+          const normalized = validateAndNormalizePlate(registrationNumber);
+          await prisma.leads.update({
+            where: { id: realLeadId },
+            data: { registration_number: normalized },
+          });
+        } catch (err: any) {
+          return new NextResponse(
+            `<!doctype html><html lang="ro"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Eroare validare</title></head><body style="margin:0;background:#f6f7fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#111827"><main style="min-height:100vh;display:grid;place-items:center;padding:24px"><section style="width:min(420px,100%);background:#fff;border-radius:16px;padding:28px;box-shadow:0 10px 30px rgba(15,23,42,.12);text-align:center"><div style="font-size:44px;margin-bottom:8px">⚠️</div><h1 style="font-size:24px;margin:0 0 8px;color:#dc2626">Număr invalid</h1><p style="margin:0 0 20px;color:#4b5563">${err.message}</p><a href="javascript:history.back()" style="display:inline-block;padding:12px 24px;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">← Încearcă din nou</a></section></main></body></html>`,
+            {
+              status: 400,
+              headers: { 'Content-Type': 'text/html; charset=utf-8' },
+            }
+          );
+        }
+      }
     }
 
     await prisma.leads.update({
