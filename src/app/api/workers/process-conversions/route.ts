@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { uploadGoogleAdsOfflineConversion } from '@/lib/google-conversions';
 import { syncAudienceList } from '@/lib/customer-match';
+import { reconcileSentConversions } from '@/lib/reconcile-conversions';
 
 // GET /api/workers/process-conversions — trigger queue processing
 // Called by cron every 5 minutes or manually
@@ -134,13 +135,21 @@ export async function GET() {
       console.error('Fake exclusion sync error:', e.message);
     }
 
+    // Reconciliere: citește statusul real de la Google pentru cele marcate `sent`
+    let reconciled: Awaited<ReturnType<typeof reconcileSentConversions>> | { error: string } = { error: 'skipped' };
+    try {
+      reconciled = await reconcileSentConversions();
+    } catch (e: any) {
+      reconciled = { error: e.message };
+    }
+
     // GDPR: purge raw IPs older than 30 days (hash-ul rămâne pentru dedup)
     await prisma.ad_clicks.updateMany({
       where: { ip_address: { not: null }, created_at: { lt: new Date(Date.now() - 30 * 86400000) } },
       data: { ip_address: null },
     }).catch(() => {});
 
-    return NextResponse.json({ processed, failed, total: jobs.length, fakesSynced });
+    return NextResponse.json({ processed, failed, total: jobs.length, fakesSynced, reconciled });
   } catch (error: any) {
     console.error('Worker error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

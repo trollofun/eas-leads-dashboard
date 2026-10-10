@@ -104,3 +104,43 @@ export async function uploadGoogleAdsOfflineConversion(input: ConversionInput): 
     requestId: result.requestId || 'unknown',
   };
 }
+
+/**
+ * Data Manager API procesează asincron: `events:ingest` răspunde 200 + requestId chiar dacă
+ * evenimentul va fi respins ulterior (ex. PROCESSING_ERROR_REASON_EVENT_TOO_OLD). Statusul
+ * real trebuie citit cu `requestStatus:retrieve`. Fără acest pas, coada arată „sent” pentru
+ * conversii pe care Google nu le-a înregistrat niciodată.
+ */
+export type RemoteRequestStatus = {
+  requestStatus: 'PROCESSING' | 'SUCCESS' | 'PARTIAL_SUCCESS' | 'FAILED' | 'UNKNOWN';
+  recordCount?: number;
+  errors?: Array<{ reason: string; recordCount: number }>;
+};
+
+export async function retrieveRequestStatus(requestId: string): Promise<RemoteRequestStatus> {
+  const { GoogleAuth } = await import('google-auth-library');
+  const auth = new GoogleAuth({ scopes: ['https://www.googleapis.com/auth/datamanager'] });
+  const client = await auth.getClient();
+  const accessToken = await client.getAccessToken();
+
+  const response = await fetch(
+    `${DATA_MANAGER_API_BASE}/requestStatus:retrieve?requestId=${encodeURIComponent(requestId)}`,
+    { headers: { Authorization: `Bearer ${accessToken.token}` } }
+  );
+  if (!response.ok) {
+    throw new Error(`Data Manager requestStatus error (${response.status}): ${await response.text()}`);
+  }
+  const json: any = await response.json();
+  const dest = json.requestStatusPerDestination?.[0];
+  if (!dest) return { requestStatus: 'UNKNOWN' };
+
+  const errors = (dest.errorInfo?.errorCounts || []).map((e: any) => ({
+    reason: String(e.reason),
+    recordCount: Number(e.recordCount || 0),
+  }));
+  return {
+    requestStatus: dest.requestStatus || 'UNKNOWN',
+    recordCount: dest.eventsIngestionStatus?.recordCount ? Number(dest.eventsIngestionStatus.recordCount) : undefined,
+    errors: errors.length ? errors : undefined,
+  };
+}
